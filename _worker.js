@@ -27,6 +27,11 @@ function getNowTime() {//获取东8区当前更新时间
 
   return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
+function formatExpire(ts) {
+  return new Date(ts * 1000).toLocaleDateString("zh-CN", {
+    timeZone: "Asia/Shanghai"
+  });
+}
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(修正请求URL(request.url));
@@ -238,7 +243,7 @@ export default {
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
 						const ua = UA.toLowerCase();
-						const expire = 1794844800;//2026-11-17 到期时间
+						const expire = 1794888000;//2026-11-17 12:00 (UTC+8到期时间)
 						const nowSec = Math.floor(Date.now() / 1000);
 						const 剩余天数 = Math.max(0, Math.floor((expire - nowSec) / 86400));
 						const now = Date.now();
@@ -349,6 +354,10 @@ export default {
 
 									if (节点备注.includes("更新")) {
 									节点备注 += `${getNowTime()}`;
+									}
+
+									if (节点备注.includes("到期")) {
+									节点备注 += `${formatExpire(expire)}`;
 									}
 								} else {
 									// 不规范的格式，跳过处理返回null
