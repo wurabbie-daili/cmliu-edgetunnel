@@ -243,14 +243,14 @@ export default {
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
 						const ua = UA.toLowerCase();
-						const expire = 1805428800;//2027-3-19 到期时间
+						const expire = Math.floor(new Date("2027-3-19T04:00:00Z").getTime() / 1000);//2027-3-19 12:00到期时间
 						const nowSec = Math.floor(Date.now() / 1000);
 						const 剩余天数 = Math.max(0, Math.floor((expire - nowSec) / 86400));
 						const now = Date.now();
 						const today = new Date(now);
 						today.setHours(0, 0, 0, 0);
 						const UD = Math.floor(((now - today.getTime()) / 86400000) * 24 * 1099511627776 / 2);
-						let pagesSum = UD, workersSum = UD, total = 24 * 1099511627776;
+						let pagesSum = UD*0.89, workersSum = UD*0.11, total = 24 * 1099511627776;
 						if (config_JSON.CF.Usage.success) {
 							pagesSum = config_JSON.CF.Usage.pages;
 							workersSum = config_JSON.CF.Usage.workers;
@@ -288,11 +288,80 @@ export default {
 							let 完整优选IP = [], 其他节点LINK = '', 反代IP池 = [];
 
 							if (!url.searchParams.has('sub') && config_JSON.优选订阅生成.local) { // 本地生成订阅
-								const 完整优选列表 = config_JSON.优选订阅生成.本地IP库.随机IP ? (
-									await 生成随机IP(request, config_JSON.优选订阅生成.本地IP库.随机数量, config_JSON.优选订阅生成.本地IP库.指定端口, (协议类型 === 'ss' ? config_JSON.SS.TLS : true))
-								)[0] : await env.KV.get('ADD.txt') ? await 整理成数组(await env.KV.get('ADD.txt')) : (
-									await 生成随机IP(request, config_JSON.优选订阅生成.本地IP库.随机数量, config_JSON.优选订阅生成.本地IP库.指定端口, (协议类型 === 'ss' ? config_JSON.SS.TLS : true))
+								let 完整优选列表 = [];
+
+								const kvData = await env.KV.get('ADD.txt');//更改后的代码
+
+								if (kvData) {
+								// ✅ KV节点
+								const kv节点 = await 整理成数组(kvData);
+
+								// 👉 提取 KV 地址（去掉端口和备注用于去重）
+								const kv地址集合 = new Set(
+									kv节点.map(item => item.split('#')[0].split(':')[0])
+								);
+
+								// ✅ 多生成一点随机节点（用于筛选）
+								const 随机结果 = await 生成随机IP(
+									request,
+									16, // 👈 多生成（比如16个）
+									config_JSON.优选订阅生成.本地IP库.指定端口,
+									(协议类型 === 'ss' ? config_JSON.SS.TLS : true)
+								);
+
+								let 随机节点 = 随机结果[0];
+
+								// =========================================
+								// ✅ 1. 去重（不和KV重复）
+								// =========================================
+								随机节点 = 随机节点.filter(item => {
+									const 地址 = item.split('#')[0].split(':')[0];
+									return !kv地址集合.has(地址);
+								});
+
+								// =========================================
+								// ✅ 2. 延迟过滤（只保留低延迟）
+								// =========================================
+								// ⚠️ 前提：你的随机IP里带有 #延迟 或 ping 信息
+								// 示例：1.2.3.4:443#US-120ms
+
+								随机节点 = 随机节点
+									.map(item => {
+									const match = item.match(/(\d+)\s*ms/i);
+									const 延迟 = match ? parseInt(match[1]) : 9999;
+									return { item, 延迟 };
+									})
+									.sort((a, b) => a.延迟 - b.延迟) // 从低到高
+									.slice(0, 2) // 👈 只要前2个
+									.map(obj => obj.item);
+
+								// =========================================
+								// ✅ 3. 修改备注
+								// =========================================
+								随机节点 = 随机节点.map(item => {
+									if (item.includes('#')) {
+									return item.replace(/#(.+)/, '#🎲随机优选⚡(依当前网络)');
+									} else {
+									return item + '#🎲随机优选⚡(依当前网络)';
+									}
+								});
+
+								// =========================================
+								// ✅ 4. 合并
+								// =========================================
+								完整优选列表 = [...kv节点, ...随机节点];
+
+								} else {
+								// ❌ 没KV → 原逻辑
+								完整优选列表 = (
+									await 生成随机IP(
+									request,
+									config_JSON.优选订阅生成.本地IP库.随机数量,
+									config_JSON.优选订阅生成.本地IP库.指定端口,
+									(协议类型 === 'ss' ? config_JSON.SS.TLS : true)
+									)
 								)[0];
+								}//更改后的代码结束
 								const 优选API = [], 优选IP = [], 其他节点 = [];
 								for (const 元素 of 完整优选列表) {
 									if (元素.toLowerCase().startsWith('sub://')) {
