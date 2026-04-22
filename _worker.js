@@ -243,7 +243,7 @@ export default {
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
 						const ua = UA.toLowerCase();
-						const expire = Math.floor(new Date("2027-11-17T04:00:00Z").getTime() / 1000);//2027-11-17 12:00到期时间
+						const expire = Math.floor(new Date("2026-11-17T04:00:00Z").getTime() / 1000);//2026-11-17 12:00到期时间
 						const nowSec = Math.floor(Date.now() / 1000);
 						const 剩余天数 = Math.max(0, Math.floor((expire - nowSec) / 86400));
 						const now = Date.now();
