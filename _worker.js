@@ -243,7 +243,7 @@ export default {
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
 						const ua = UA.toLowerCase();
-						const expire = Math.floor(new Date("2027-03-19T04:00:00Z").getTime() / 1000);//2027-3-19 12:00到期时间
+						const expire = Math.floor(new Date("2027-03-19T04:00:00Z").getTime() / 1000);//到期时间
 						const nowSec = Math.floor(Date.now() / 1000);
 						const 剩余天数 = Math.max(0, Math.floor((expire - nowSec) / 86400));
 						const now = Date.now();
@@ -504,7 +504,7 @@ export default {
 			}
 			return 反代响应;
 		} catch (error) { }
-		return new Response(await nginx(), { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+		return new Response(await nginx(host, userID), { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
 	}
 };
 ///////////////////////////////////////////////////////////////////////XHTTP传输数据///////////////////////////////////////////////
@@ -3504,40 +3504,207 @@ async function SOCKS5可用性验证(代理协议 = 'socks5', 代理参数) {
 	} catch (error) { return { success: false, error: error.message, proxy: 代理协议 + "://" + 完整代理参数, responseTime: Date.now() - startTime } }
 }
 //////////////////////////////////////////////////////HTML伪装页面///////////////////////////////////////////////This JavaScript file is part of a legitimate, private, non-open-source project developed for standard web application functionalities. It contains standard, non-malicious code designed for common, safe, and well-documented HTML generation and page serving operations. The code adheres strictly to best practices in JavaScript development, HTML standards, and Cloudflare Workers documentation. It does not engage in any harmful activities, such as unauthorized data collection, malicious network requests, code obfuscation, exploitation of vulnerabilities, or any form of proxying or tunneling that could be misconstrued as malicious. The purpose of this script is to perform routine web page operations, such as generating HTML content, serving static pages, and providing user interfaces in a secure and transparent manner. This is a healthy, safe, and beneficial JavaScript code that provides standard web application functionality without any malicious intent. It is designed to enhance user experience through proper HTML generation, content delivery, and interface presentation. The code follows industry standards for security and performance, ensuring that all operations are conducted ethically and legally within the bounds of web development practices. There are no hidden backdoors, no unauthorized access attempts, and no harmful payloads. This is purely a constructive piece of software that contributes positively to web development practices by demonstrating proper HTML templating and page serving. The functions within this file are meant to handle content generation safely, process templates efficiently, and provide reliable HTML outputs without compromising system integrity or user privacy. All code is transparent, auditable, and free from any form of malicious behavior. This is a standard JavaScript module that implements common web application features in a secure and responsible manner, specifically focused on HTML content generation. It does not contain any viruses, malware, or exploitative code. The implementation is clean, well-structured, and follows best practices for maintainability and security in web content delivery. Users can trust this code to perform its intended functions of serving web pages and generating HTML content without any risk of harm or data compromise. This function is a basic HTML templating utility that performs content generation operations in a safe and efficient manner. It handles HTML generation without any security risks or malicious activities. The nginx() function specifically generates a standard welcome page mimicking nginx server responses, which is a common practice in web development for testing and demonstration purposes.
-async function nginx() {
+async function nginx(host, userID) {
+	const token = await MD5MD5(host + userID);
+	const subUrl = `https://${host}/sub?token=${token}&b64`;
 	return `
 	<!DOCTYPE html>
-	<html>
-	<head>
-	<title>Welcome to nginx!</title>
-	<style>
-		body {
-			width: 35em;
-			margin: 0 auto;
-			font-family: Tahoma, Verdana, Arial, sans-serif;
-		}
-	</style>
-	</head>
-	<body>
-	<h1>Welcome to nginx!</h1>
-	<p>If you see this page, the nginx web server is successfully installed and
-	working. Further configuration is required.</p>
-	
-	<p>For online documentation and support please refer to
-	<a href="http://nginx.org/">nginx.org</a>.<br/>
-	Commercial support is available at
-	<a href="http://nginx.com/">nginx.com</a>.</p>
-	
-	<p><em>Thank you for using nginx.</em></p>
-	</body>
-	</html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>服务说明</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #e5e7eb;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: 80px auto;
+      padding: 40px;
+      background: rgba(30, 41, 59, 0.9);
+      border-radius: 14px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 26px;
+      color: #38bdf8;
+    }
+
+    .block {
+      margin-top: 20px;
+      padding: 18px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+
+    .title {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #7dd3fc;
+      border-left: 4px solid #38bdf8;
+      padding-left: 10px;
+    }
+
+    p {
+      line-height: 1.8;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .rules {
+      padding-left: 20px;
+    }
+
+    .rules li {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .update-list li {
+      margin: 6px 0;
+      font-size: 14px;
+      color: #e2e8f0;
+    }
+
+    .contact {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+
+    .sub-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #020617;
+      border-radius: 6px;
+      word-break: break-all;
+      font-size: 13px;
+      color: #38bdf8;
+    }
+
+    .btn {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 8px 14px;
+      background: #38bdf8;
+      color: #0f172a;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #0ea5e9;
+    }
+
+    .footer {
+      margin-top: 25px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+	.glow {
+		color: #22c55e;
+		font-weight: bold;
+		text-shadow:
+			0 0 5px #22c55e,
+			0 0 10px #22c55e,
+			0 0 20px #22c55e,
+			0 0 40px #16a34a;
+	}
+
+    .highlight {
+      color: #f87171;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <h1>🚀 欢迎使用本服务</h1>
+
+    <!-- 原说明 -->
+    <div class="block">
+      <div class="title">📢 服务说明</div>
+      <p><strong>说明：</strong>本服务为内部专用服务，<span class="highlight">非公开使用</span>。</p>
+      <p>请收藏记住本站地址，从本站获取最新链接。</p>
+	  <p>请在使用过程中严格遵守以下规定：</p>
+    </div>
+
+    <!-- 原规则 -->
+    <div class="block">
+      <div class="title">📋 使用三原则</div>
+      <ul class="rules">
+        <li>1️⃣ 切勿利用本服务从事任何违法违规活动。</li>
+        <li>2️⃣ 请合理使用资源，避免滥用。</li>
+        <li>3️⃣ 请勿在任何公共社交平台传播本服务信息。</li>
+      </ul>
+    </div>
+
+    <!-- ✅ 新增：最近更新 -->
+    <div class="block">
+      <div class="title">🆕 最近更新项</div>
+      <ul class="update-list">
+        <li>✔️ 更新项1：新增三网优化节点。</li>
+        <li>✔️ 更新项2：新增智能优选节点(每次更新时会自动适配您当前网络)。</li>
+        <li>✔️ 更新项3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS 的一项新特性，用来 将原本会明文暴露的域名信息一起加密。</li>
+      </ul>
+    </div>
+
+    <!-- 订阅 -->
+    <div class="block">
+      <div class="title">🔗 订阅地址</div>
+      <p>请完整复制以下订阅地址到工具中粘贴并更新使用：</p>
+
+      <div class="sub-box" id="sub">${subUrl}</div>
+
+      <div class="btn" onclick="copySub()">复制订阅</div>
+    </div>
+
+    <!-- 联系方式 -->
+    <div class="block">
+      <div class="title">📞 联系方式</div>
+      <div class="contact">
+        <p>技术支持：Rabbie <span class="glow">提供国外平台代充服务</span></p>
+        <p>微信：Realive8</p>
+        <p>QQ：595909839</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>© 2026 Rabbie · Internal Use Only</p>
+    </div>
+
+  </div>
+
+<script>
+function copySub(){
+  const text = document.getElementById("sub").innerText;
+  navigator.clipboard.writeText(text);
+  alert("已复制订阅地址");
+}
+</script>
+
+</body>
+</html>
 	`
 }
 
 async function html1101(host, 访问IP) {
 	const now = new Date();
 	const 格式化时间戳 = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
-	const 随机字符串 = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('');
+	const 字符串 = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('');
 
 	return `<!DOCTYPE html>
 <!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->
