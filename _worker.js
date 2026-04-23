@@ -340,9 +340,9 @@ export default {
 								// =========================================
 								随机节点 = 随机节点.map(item => {
 									if (item.includes('#')) {
-									return item.replace(/#(.+)/, '#🎲随机优选⚡(依当前网络)');
+									return item.replace(/#(.+)/, '#🎲智能优选⚡(依当前网络)');
 									} else {
-									return item + '#🎲随机优选⚡(依当前网络)';
+									return item + '#🎲智能优选⚡(依当前网络)';
 									}
 								});
 
