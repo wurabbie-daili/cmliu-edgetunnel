@@ -3657,24 +3657,16 @@ async function nginx(host, userID) {
     </div>
 
     <!-- ✅ 新增：最近更新 -->
-    <div class="block">
-      <div class="title">🆕 最近更新项</div>
-      <ul class="update-list">
-        <li>✔️ 更新项1：新增三网优化节点。</li>
-        <li>✔️ 更新项2：新增智能优选节点(每次更新时会自动适配您当前网络)。</li>
-        <li>✔️ 更新项3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS的一项新特性，用来将原本会明文暴露的域名信息一起加密。</li>
-      </ul>
-    </div>
+<div class="block">
+  <div class="title">🆕 最近更新项</div>
+  <ul class="update-list">
+    <li>✔️ 1：新增三网优化节点，尽最大限度适配三网。</li>
+    <li>✔️ 2：新增智能优选节点(每次更新时会自动适配您当前网络,但并不表示一定是优速)。</li>
+    <li>✔️ 3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS的一项新特性，用来将原本会明文暴露的域名信息一起加密。</li>
+  </ul>
+</div>
 
-    <!-- 订阅 -->
-    <div class="block">
-      <div class="title">🔗 订阅地址</div>
-      <p>请完整复制以下订阅地址到工具中粘贴并更新使用：</p>
 
-      <div class="sub-box" id="sub">${subUrl}</div>
-
-      <div class="btn" onclick="copySub()">复制订阅</div>
-    </div>
 
     <!-- 联系方式 -->
     <div class="block">
