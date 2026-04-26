@@ -312,6 +312,7 @@ export default {
 								let 随机节点 = 随机结果[0];
 
 								// =========================================
+								// =========================================
 								// ✅ 1. 确保是数组
 								// =========================================
 								if (!Array.isArray(随机节点)) {
@@ -2417,18 +2418,30 @@ async function 请求日志记录(env, request, 访问IP, 请求类型 = "Get_SU
 				const TG_TXT = await env.KV.get('tg.json');
 				const TG_JSON = JSON.parse(TG_TXT);
 				if (TG_JSON?.BotToken && TG_JSON?.ChatID) {
+					const asnHuman = parseASN(日志内容.ASN);//新增ASN翻译
 					const 请求时间 = new Date(日志内容.TIME).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 					const 请求URL = new URL(日志内容.URL);
+					const cfRay = request.headers.get("cf-ray");
+					const referer = request.headers.get("referer");
+					const lang = request.headers.get("accept-language");
+					const token = 请求URL.searchParams.get("token");
+					const ipType = 日志内容.IP.includes(":") ? "IPv6" : "IPv4";
 					const msg = `<b>#${config_JSON.优选订阅生成.SUBNAME} 日志通知</b>\n\n` +
-						`📌 <b>类型：</b>#${日志内容.TYPE}\n` +
-						`🌐 <b>IP：</b><code>${日志内容.IP}</code>\n` +
-						`📍 <b>位置：</b>${日志内容.CC}\n` +
-						`🏢 <b>ASN：</b>${日志内容.ASN}\n` +
-						`🔗 <b>域名：</b><code>${请求URL.host}</code>\n` +
-						`🔍 <b>路径：</b><code>${请求URL.pathname + 请求URL.search}</code>\n` +
-						`🤖 <b>UA：</b><code>${日志内容.UA}</code>\n` +
-						`📅 <b>时间：</b>${请求时间}\n` +
-						`${config_JSON.CF.Usage.success ? `📊 <b>请求用量：</b>${config_JSON.CF.Usage.total}/${config_JSON.CF.Usage.max} <b>${((config_JSON.CF.Usage.total / config_JSON.CF.Usage.max) * 100).toFixed(2)}%</b>\n` : ''}`;
+					`📌 <b>类型：</b>#${日志内容.TYPE}\n` +
+					`🆔 <b>CF-Ray：</b><code>${cfRay}</code>\n` +
+					`🌐 <b>IP：</b><code>${日志内容.IP}</code> (${ipType})\n` +
+					`📍 <b>位置：</b>${日志内容.CC}\n` +
+					`🏢 <b>ASN：</b>${asnHuman} <code>(${日志内容.ASN})</code>\n` +
+					`🔑 <b>Token：</b><code>${token || '无'}</code>\n` +
+					`🔗 <b>域名：</b><code>${请求URL.host}</code>\n` +
+					`🔍 <b>路径：</b><code>${请求URL.pathname + 请求URL.search}</code>\n` +
+					`🌍 <b>来源：</b><code>${referer || 'Direct'}</code>\n` +
+					`🌐 <b>语言：</b>${lang || '未知'}\n` +
+					`📮 <b>方法：</b>${request.method}\n` +
+					`🤖 <b>UA：</b><code>${日志内容.UA}</code>\n` +
+					`📅 <b>时间：</b>${请求时间}\n` +
+					`${config_JSON.CF.Usage.success ? 
+					`📊 <b>请求用量：</b>${config_JSON.CF.Usage.total}/${config_JSON.CF.Usage.max} <b>${((config_JSON.CF.Usage.total / config_JSON.CF.Usage.max) * 100).toFixed(2)}%</b>\n` : ''}`;
 					await fetch(`https://api.telegram.org/bot${TG_JSON.BotToken}/sendMessage?chat_id=${TG_JSON.ChatID}&parse_mode=HTML&text=${encodeURIComponent(msg)}`, {
 						method: 'GET',
 						headers: {
@@ -2462,7 +2475,28 @@ async function 请求日志记录(env, request, 访问IP, 请求类型 = "Get_SU
 		await env.KV.put('log.json', JSON.stringify(日志数组, null, 2));
 	} catch (error) { console.error(`日志记录失败: ${error.message}`) }
 }
+//新增ASN翻译表
+function parseASN(asn){
+  if (!asn) return "未知";
 
+  const text = asn.toLowerCase();
+
+  if (text.includes("4134")) return "中国电信";
+  if (text.includes("4837")) return "中国联通";
+  if (text.includes("9808")) return "中国移动";
+
+  if (text.includes("alibaba")) return "阿里云";
+  if (text.includes("tencent")) return "腾讯云";
+  if (text.includes("huawei")) return "华为云";
+
+  if (text.includes("amazon")) return "AWS";
+  if (text.includes("google")) return "Google Cloud";
+  if (text.includes("microsoft")) return "Azure";
+
+  if (text.includes("cloudflare")) return "Cloudflare";
+
+  return asn; // 默认返回原始
+}
 function 掩码敏感信息(文本, 前缀长度 = 3, 后缀长度 = 2) {
 	if (!文本 || typeof 文本 !== 'string') return 文本;
 	if (文本.length <= 前缀长度 + 后缀长度) return 文本; // 如果长度太短，直接返回
@@ -3657,15 +3691,14 @@ async function nginx(host, userID) {
     </div>
 
     <!-- ✅ 新增：最近更新 -->
-<div class="block">
-  <div class="title">🆕 最近更新项</div>
-  <ul class="update-list">
-    <li>✔️ 1：新增三网优化节点，尽最大限度适配三网。</li>
-    <li>✔️ 2：新增智能优选节点(每次更新时会自动适配您当前网络,但并不表示一定是优速)。</li>
-    <li>✔️ 3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS的一项新特性，用来将原本会明文暴露的域名信息一起加密。</li>
-  </ul>
-</div>
-
+    <div class="block">
+      <div class="title">🆕 最近更新项</div>
+      <ul class="update-list">
+        <li>✔️ 更新项1：新增三网优化节点。</li>
+        <li>✔️ 更新项2：新增智能优选节点(每次更新时会自动适配您当前网络)。</li>
+        <li>✔️ 更新项3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS 的一项新特性，用来 将原本会明文暴露的域名信息一起加密。</li>
+      </ul>
+    </div>
 
 
     <!-- 联系方式 -->
