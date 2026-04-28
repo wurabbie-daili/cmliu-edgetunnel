@@ -2438,6 +2438,7 @@ async function 请求日志记录(env, request, 访问IP, 请求类型 = "Get_SU
 					`🔗 <b>域名：</b><code>${请求URL.host}</code>\n` +
 					`🔍 <b>路径：</b><code>${请求URL.pathname + 请求URL.search}</code>\n` +
 					`🌍 <b>来源：</b><code>${referer || 'Direct'}</code>\n` +
+					`📊 <b>CF来源：</b><code>${config_JSON?.CF?.source || "未知"}</code>\n` +
 					`🌐 <b>语言：</b>${lang || '未知'}\n` +
 					`📮 <b>方法：</b>${request.method}\n` +
 					`🤖 <b>UA：</b><code>${日志内容.UA}</code>\n` +
@@ -2888,34 +2889,83 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 		console.error(`读取tg.json出错: ${error.message}`);
 	}
 
-	const 初始化CF_JSON = { Email: null, GlobalAPIKey: null, AccountID: null, APIToken: null, UsageAPI: null };
-	config_JSON.CF = { ...初始化CF_JSON, Usage: { success: false, pages: 0, workers: 0, total: 0, max: 100000 } };
+	const 初始化CF_JSON = {
+		Email: null,
+		GlobalAPIKey: null,
+		AccountID: null,
+		APIToken: null,
+		UsageAPI: null
+	};
+
+	config_JSON.CF = {
+		...初始化CF_JSON,
+		Usage: { success: false, pages: 0, workers: 0, total: 0, max: 100000 }
+	};
+
 	try {
-		const CF_TXT = await env.KV.get('cf.json');
-		if (!CF_TXT) {
-			await env.KV.put('cf.json', JSON.stringify(初始化CF_JSON, null, 2));
+		// ✅ 1. 优先读取环境变量
+		const CF_ACCOUNT_ID = env.CF_ACCOUNT_ID;
+		const CF_API_TOKEN = env.CF_API_TOKEN;
+
+		if (CF_ACCOUNT_ID && CF_API_TOKEN) {
+			// 👉 用 env
+			const Usage = await getCloudflareUsage(
+				null,
+				null,
+				CF_ACCOUNT_ID,
+				CF_API_TOKEN
+			);
+			config_JSON.CF.AccountID = "env";
+			config_JSON.CF.APIToken = "env";
+			config_JSON.CF.Usage = Usage;
+			// ✅ 放这里
+    		config_JSON.CF.source = "env";
 		} else {
-			const CF_JSON = JSON.parse(CF_TXT);
-			if (CF_JSON.UsageAPI) {
-				try {
-					const response = await fetch(CF_JSON.UsageAPI);
-					const Usage = await response.json();
-					config_JSON.CF.Usage = Usage;
-				} catch (err) {
-					console.error(`请求 CF_JSON.UsageAPI 失败: ${err.message}`);
-				}
+			// ✅ 2. fallback 到 KV
+			const CF_TXT = await env.KV.get('cf.json');
+
+			if (!CF_TXT) {
+				await env.KV.put('cf.json', JSON.stringify(初始化CF_JSON, null, 2));
 			} else {
-				config_JSON.CF.Email = CF_JSON.Email ? CF_JSON.Email : null;
-				config_JSON.CF.GlobalAPIKey = CF_JSON.GlobalAPIKey ? 掩码敏感信息(CF_JSON.GlobalAPIKey) : null;
-				config_JSON.CF.AccountID = CF_JSON.AccountID ? 掩码敏感信息(CF_JSON.AccountID) : null;
-				config_JSON.CF.APIToken = CF_JSON.APIToken ? 掩码敏感信息(CF_JSON.APIToken) : null;
-				config_JSON.CF.UsageAPI = null;
-				const Usage = await getCloudflareUsage(CF_JSON.Email, CF_JSON.GlobalAPIKey, CF_JSON.AccountID, CF_JSON.APIToken);
-				config_JSON.CF.Usage = Usage;
+				const CF_JSON = JSON.parse(CF_TXT);
+
+				if (CF_JSON.UsageAPI) {
+					try {
+						const response = await fetch(CF_JSON.UsageAPI);
+						const Usage = await response.json();
+						config_JSON.CF.Usage = Usage;
+					} catch (err) {
+						console.error(`请求 UsageAPI 失败: ${err.message}`);
+					}
+
+				} else {
+					config_JSON.CF.Email = CF_JSON.Email || null;
+					config_JSON.CF.GlobalAPIKey = CF_JSON.GlobalAPIKey
+						? 掩码敏感信息(CF_JSON.GlobalAPIKey)
+						: null;
+					config_JSON.CF.AccountID = CF_JSON.AccountID
+						? 掩码敏感信息(CF_JSON.AccountID)
+						: null;
+					config_JSON.CF.APIToken = CF_JSON.APIToken
+						? 掩码敏感信息(CF_JSON.APIToken)
+						: null;
+
+					const Usage = await getCloudflareUsage(
+						CF_JSON.Email,
+						CF_JSON.GlobalAPIKey,
+						CF_JSON.AccountID,
+						CF_JSON.APIToken
+					);
+
+					config_JSON.CF.Usage = Usage;
+				}
+				// ✅ 放这里
+    			config_JSON.CF.source = "kv";
 			}
 		}
+
 	} catch (error) {
-		console.error(`读取cf.json出错: ${error.message}`);
+		console.error(`读取cf配置出错: ${error.message}`);
 	}
 
 	config_JSON.加载时间 = (performance.now() - 初始化开始时间).toFixed(2) + 'ms';
