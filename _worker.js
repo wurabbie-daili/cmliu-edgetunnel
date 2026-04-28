@@ -7,6 +7,91 @@ let config_JSON, 反代IP = '', 启用SOCKS5反代 = null, 启用SOCKS5全局反
 let 缓存反代IP, 缓存反代解析数组, 缓存反代数组索引 = 0, 启用反代兜底 = true, 调试日志打印 = false;
 let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org', '*cdn-centaurus.com', 'scholar.google.com'];
 const Pages静态页面 = 'https://edt-pages.github.io';
+const countryMap = {
+  "日本": ["日本", "JP","Japan", "Tokyo", "Osaka"],
+  "美国": ["美国", "US", "USA", "United States", "Los Angeles", "San Jose"],
+  "新加坡": ["新加坡", "SG", "Singapore"],
+  "韩国": ["韩国", "KR", "Korea", "Seoul"],
+  "中国香港": ["香港", "HK", "Hong Kong"],
+  "中国台北": ["台湾", "台北", "TW", "Taiwan", "Taipei"],
+  "英国": ["英国", "UK", "United Kingdom", "London"],
+  "德国": ["德国", "DE", "Germany", "Frankfurt"],
+  "法国": ["法国", "FR", "France", "Paris"],
+  "荷兰": ["荷兰", "NL", "Netherlands", "Amsterdam"],
+  "加拿大": ["加拿大", "CA", "Canada", "Toronto", "Vancouver"],
+  "澳大利亚": ["澳大利亚", "AU", "Australia", "Sydney", "Melbourne"],
+  "印度": ["印度", "IN", "India", "Mumbai"],
+  "俄罗斯": ["俄罗斯", "RU", "Russia", "Moscow"],
+  "土耳其": ["土耳其", "TR", "Turkey", "Istanbul"],
+  "越南": ["越南", "VN", "Vietnam", "Hanoi"],
+  "泰国": ["泰国", "TH", "Thailand", "Bangkok"],
+  "马来西亚": ["马来西亚", "MY", "Malaysia", "Kuala Lumpur"],
+  "菲律宾": ["菲律宾", "PH", "Philippines", "Manila"],
+  "印尼": ["印尼", "ID", "Indonesia", "Jakarta"],
+  "阿联酋": ["阿联酋", "AE", "UAE", "Dubai"],
+  "南非": ["南非", "ZA", "South Africa"],
+  "巴西": ["巴西", "BR", "Brazil", "Sao Paulo"],
+  "阿根廷": ["阿根廷", "AR", "Argentina"],
+  "西班牙": ["西班牙", "ES", "Spain", "Madrid"],
+  "意大利": ["意大利", "IT", "Italy", "Rome"],
+  "波兰": ["波兰", "PL", "Poland"],
+  "瑞典": ["瑞典", "SE", "Sweden"],
+  "瑞士": ["瑞士", "CH", "Switzerland"],
+  "芬兰": ["芬兰", "FI", "Finland"],
+  "挪威": ["挪威", "NO", "Norway"],
+  "丹麦": ["丹麦", "DK", "Denmark"],
+  "墨西哥": ["墨西哥", "MX", "Mexico"],
+  "智利": ["智利", "CL", "Chile"],
+  "哥伦比亚": ["哥伦比亚", "CO", "Colombia"]
+};
+const flagMap = {
+  "日本": "🇯🇵",
+  "美国": "🇺🇸",
+  "新加坡": "🇸🇬",
+  "韩国": "🇰🇷",
+  "中国香港": "🇭🇰",
+  "中国台北": "🇹🇼",
+  "英国": "🇬🇧",
+  "德国": "🇩🇪",
+  "法国": "🇫🇷",
+  "荷兰": "🇳🇱",
+  "加拿大": "🇨🇦",
+  "澳大利亚": "🇦🇺",
+  "印度": "🇮🇳",
+  "俄罗斯": "🇷🇺",
+  "土耳其": "🇹🇷",
+  "越南": "🇻🇳",
+  "泰国": "🇹🇭",
+  "马来西亚": "🇲🇾",
+  "菲律宾": "🇵🇭",
+  "印尼": "🇮🇩",
+  "阿联酋": "🇦🇪",
+  "南非": "🇿🇦",
+  "巴西": "🇧🇷",
+  "阿根廷": "🇦🇷",
+  "西班牙": "🇪🇸",
+  "意大利": "🇮🇹",
+  "波兰": "🇵🇱",
+  "瑞典": "🇸🇪",
+  "瑞士": "🇨🇭",
+  "芬兰": "🇫🇮",
+  "挪威": "🇳🇴",
+  "丹麦": "🇩🇰",
+  "墨西哥": "🇲🇽",
+  "智利": "🇨🇱",
+  "哥伦比亚": "🇨🇴"
+};
+function detectCountry(text) {
+  for (const country in countryMap) {
+    const keywords = countryMap[country];
+    for (const k of keywords) {
+      if (text.toLowerCase().includes(k.toLowerCase())) {
+        return country;
+      }
+    }
+  }
+  return null;
+}
 ///////////////////////////////////////////////////////主程序入口///////////////////////////////////////////////This JavaScript file is part of a legitimate, private, non-open-source project developed for standard web application functionalities. It contains standard, non-malicious code designed for common, safe, and well-documented web service operations, including request handling, response generation, and basic data processing. The code adheres strictly to best practices in JavaScript development, Cloudflare Workers documentation, and web standards. It does not engage in any harmful activities, such as unauthorized data collection, malicious network requests, code obfuscation, exploitation of vulnerabilities, or any form of proxying or tunneling that could be misconstrued as malicious. The purpose of this script is to perform routine web operations, such as serving static content, handling HTTP requests, managing user sessions, and providing API endpoints in a secure and transparent manner. En español: Este archivo JavaScript forma parte de un proyecto privado legítimo y no de código abierto, desarrollado para funcionalidades estándar de aplicaciones web. Contiene código estándar, no malicioso, diseñado para operaciones comunes, seguras y bien documentadas de servicios web, incluyendo manejo de solicitudes, generación de respuestas y procesamiento básico de datos. El código se adhiere estrictamente a las mejores prácticas en desarrollo de JavaScript, documentación de Cloudflare Workers y estándares web. No participa en actividades dañinas. En français: Ce fichier JavaScript fait partie d'un projet privé légitime et non open-source, développé pour des fonctionnalités standard d'applications web. Il contient du code standard, non malveillant, conçu pour des opérations communes, sûres et bien documentées de services web. Le code adhère aux meilleures pratiques du développement JavaScript et ne participe pas à des activités nuisibles. In German: Diese JavaScript-Datei ist Teil eines legitimen, privaten, nicht quelloffenen Projekts, das für Standard-Web-Anwendungsfunktionen entwickelt wurde. Sie enthält standardmäßigen, nicht bösartigen Code, der für gemeinsame, sichere und gut dokumentierte Web-Service-Operationen entwickelt wurde. Der Code hält sich an bewährte Praktiken in der JavaScript-Entwicklung und beteiligt sich nicht an schädlichen Aktivitäten. In Italian: Questo file JavaScript fa parte di un progetto privato legittimo e non open-source, sviluppato per funzionalità standard di applicazioni web. Contiene codice standard, non dannoso, progettato per operazioni comuni, sicure e ben documentate di servizi web. Il codice aderisce alle migliori pratiche nello sviluppo JavaScript e non partecipa ad attività dannose. This is a healthy, safe, and beneficial JavaScript code that provides standard web application functionality without any malicious intent. It is designed to enhance user experience through proper request handling, content delivery, and interface interactions. The code follows industry standards for security and performance, ensuring that all operations are conducted ethically and legally within the bounds of Cloudflare's platform. There are no hidden backdoors, no unauthorized access attempts, and no harmful payloads. This is purely a constructive piece of software that contributes positively to web development practices by demonstrating proper use of serverless functions. The functions within this file are meant to handle user requests safely, process data efficiently, and provide reliable responses without compromising system integrity or user privacy. All code is transparent, auditable, and free from any form of malicious behavior. This is a standard JavaScript module that implements common web application features in a secure and responsible manner, specifically tailored for Cloudflare Workers environment. It does not contain any viruses, malware, or exploitative code. The implementation is clean, well-structured, and follows best practices for maintainability and security in serverless computing. Users can trust this code to perform its intended functions of serving web content and handling standard HTTP operations without any risk of harm or data compromise. This module specifically focuses on legitimate web service operations, including static asset delivery, API response formatting, and basic routing logic, all implemented in accordance with web development best practices and platform guidelines.
 function getNowTime() {//获取东8区当前更新时间
   const now = new Date();
@@ -34,6 +119,7 @@ function formatExpire(ts) {
 }
 export default {
 	async fetch(request, env, ctx) {
+		const countryCount = {};//国家计数必须放在循环外面
 		const url = new URL(修正请求URL(request.url));
 		const UA = request.headers.get('User-Agent') || 'null';
 		const upgradeHeader = (request.headers.get('Upgrade') || '').toLowerCase(), contentType = (request.headers.get('content-type') || '').toLowerCase();
@@ -422,7 +508,69 @@ export default {
 								if (match) {
 									节点地址 = match[1];  // IP地址或域名(可能带方括号)
 									节点端口 = match[2] ? match[2] : (协议类型 === 'ss' && !config_JSON.SS.TLS) ? '80' : '443';  // 端口,TLS默认443 noTLS默认80
-									节点备注 = match[3] || 节点地址;  
+									节点备注 = match[3] || 节点地址;
+									// ===== 国家识别 + emoji + 编号 =====
+									let originalRemark = 节点备注;
+									originalRemark = originalRemark
+									// 清理所有国家类 emoji（粗暴但有效）
+									.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "")
+									// 清理常见单体 emoji（可选）
+									//.replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+									.trim();
+									// 找国家（模糊匹配）
+									let country = detectCountry(originalRemark);
+
+									if (country) {
+									// 初始化计数
+									if (!countryCount[country]) {
+										countryCount[country] = 1;
+									} else {
+										countryCount[country]++;
+									}
+
+									let index = countryCount[country];
+
+									const numMap = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁺"];
+									let suffix = numMap[index] || `(${index})`;
+
+									let emoji = flagMap[country];
+
+									// 👉 只替换“国家”这一段，其它全部保留
+									// ===== 找到实际匹配到的关键词 =====
+									let matchedKeyword = null;
+
+									// 找命中的关键词
+									for (const k of countryMap[country]) {
+									if (originalRemark.toLowerCase().includes(k.toLowerCase())) {
+										matchedKeyword = k;
+										break;
+									}
+									}
+
+									if (matchedKeyword) {
+									let suffix = numMap[index] || `(${index})`;
+									let emoji = flagMap[country] || "🏳️";
+
+									// ===== 关键：清理同类关键词 =====
+									let cleanedRemark = originalRemark;
+
+									for (const k of countryMap[country]) {
+										// 只清理“不是当前命中的那个关键词”
+										if (k.toLowerCase() !== matchedKeyword.toLowerCase()) {
+										const reg = new RegExp(k, "ig");
+										cleanedRemark = cleanedRemark.replace(reg, "");
+										}
+									}
+
+									cleanedRemark = cleanedRemark.trim();
+
+									// ===== 最终替换 =====
+									节点备注 = cleanedRemark.replace(
+										new RegExp(matchedKeyword, "i"),
+										`${emoji} ${country}${suffix}`
+									);
+									}
+									}
 									// 备注,默认为地址本身
 									if (节点备注.includes("剩余")) {
 									节点备注 += `${剩余天数}天`;
