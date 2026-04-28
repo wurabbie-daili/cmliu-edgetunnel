@@ -160,7 +160,8 @@ export default {
 								if (!newConfig.UUID || !newConfig.HOST) return new Response(JSON.stringify({ error: '配置不完整' }), { status: 400, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 
 								// 保存到 KV
-								await env.KV.put('config.json', JSON.stringify(newConfig, null, 2));
+								const CONFIG_KEY = `config:${host}`;
+								await env.KV.put(CONFIG_KEY, JSON.stringify(newConfig, null, 2));
 								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Save_Config', config_JSON));
 								return new Response(JSON.stringify({ success: true, message: '配置已保存' }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 							} catch (error) {
@@ -243,7 +244,8 @@ export default {
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
 						const ua = UA.toLowerCase();
-						const expire = Math.floor(new Date("2027-12-12T04:00:00Z").getTime() / 1000);//到期时间
+						const expireStr = env.EXPIRE || "2099-01-01T04:00:00Z";
+						const expire = Math.floor(new Date(expireStr).getTime() / 1000);//到期时间
 						const nowSec = Math.floor(Date.now() / 1000);
 						const 剩余天数 = Math.max(0, Math.floor((expire - nowSec) / 86400));
 						const now = Date.now();
@@ -2799,9 +2801,10 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 	};
 
 	try {
-		let configJSON = await env.KV.get('config.json');
+		const CONFIG_KEY = `config:${hostname}`;
+		let configJSON = await env.KV.get(CONFIG_KEY);
 		if (!configJSON || 重置配置 == true) {
-			await env.KV.put('config.json', JSON.stringify(默认配置JSON, null, 2));
+			await env.KV.put(CONFIG_KEY, JSON.stringify(默认配置JSON, null, 2));
 			config_JSON = 默认配置JSON;
 		} else {
 			config_JSON = JSON.parse(configJSON);
