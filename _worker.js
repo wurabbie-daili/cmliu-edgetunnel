@@ -231,7 +231,7 @@ export default {
 					if (访问路径 === 'admin/init') {// 重置配置为默认值
 						try {
 							config_JSON = await 读取config_JSON(env, host, userID, UA, true);
-							ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON));
+							ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 							config_JSON.init = '配置已重置为默认值';
 							return new Response(JSON.stringify(config_JSON, null, 2), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 						} catch (err) {
@@ -248,7 +248,7 @@ export default {
 								// 保存到 KV
 								const CONFIG_KEY = `config:${host}`;
 								await env.KV.put(CONFIG_KEY, JSON.stringify(newConfig, null, 2));
-								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Save_Config', config_JSON));
+								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 								return new Response(JSON.stringify({ success: true, message: '配置已保存' }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 							} catch (error) {
 								console.error('保存配置失败:', error);
@@ -274,7 +274,7 @@ export default {
 
 								// 保存到 KV
 								await env.KV.put('cf.json', JSON.stringify(CF_JSON, null, 2));
-								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Save_Config', config_JSON));
+								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 								return new Response(JSON.stringify({ success: true, message: '配置已保存' }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 							} catch (error) {
 								console.error('保存配置失败:', error);
@@ -290,7 +290,7 @@ export default {
 									if (!newConfig.BotToken || !newConfig.ChatID) return new Response(JSON.stringify({ error: '配置不完整' }), { status: 400, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 									await env.KV.put('tg.json', JSON.stringify(newConfig, null, 2));
 								}
-								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Save_Config', config_JSON));
+								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 								return new Response(JSON.stringify({ success: true, message: '配置已保存' }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 							} catch (error) {
 								console.error('保存配置失败:', error);
@@ -300,7 +300,7 @@ export default {
 							try {
 								const customIPs = await request.text();
 								await env.KV.put('ADD.txt', customIPs);// 保存到 KV
-								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Save_Custom_IPs', config_JSON));
+								ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 								return new Response(JSON.stringify({ success: true, message: '自定义IP已保存' }), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 							} catch (error) {
 								console.error('保存自定义IP失败:', error);
@@ -317,7 +317,7 @@ export default {
 						return new Response(JSON.stringify(request.cf, null, 2), { status: 200, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
 					}
 
-					ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Admin_Login', config_JSON));
+					ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Init_Config', config_JSON, true, false));
 					return fetch(Pages静态页面 + '/admin' + url.search);
 				} else if (访问路径 === 'logout' || uuidRegex.test(访问路径)) {//清除cookie并跳转到登录页面
 					const 响应 = new Response('重定向中...', { status: 302, headers: { 'Location': '/login' } });
@@ -327,8 +327,8 @@ export default {
 					const 订阅TOKEN = await MD5MD5(host + userID), 作为优选订阅生成器 = ['1', 'true'].includes(env.BEST_SUB) && url.searchParams.get('host') === 'example.com' && url.searchParams.get('uuid') === '00000000-0000-4000-8000-000000000000' && UA.toLowerCase().includes('tunnel (https://github.com/cmliu/edge');
 					if (url.searchParams.get('token') === 订阅TOKEN || 作为优选订阅生成器) {
 						config_JSON = await 读取config_JSON(env, host, userID, UA);
-						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false));
-						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON));
+						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false,true));
+						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON,true,true));
 						const ua = UA.toLowerCase();
 						const expireStr = env.EXPIRE || "2099-01-01T04:00:00Z";
 						const expire = Math.floor(new Date(expireStr).getTime() / 1000);//到期时间
@@ -2558,73 +2558,87 @@ function Surge订阅配置文件热补丁(content, url, config_JSON) {
 	输出内容 = `#!MANAGED-CONFIG ${url} interval=${config_JSON.优选订阅生成.SUBUpdateTime * 60 * 60} strict=false` + 输出内容.substring(输出内容.indexOf('\n'));
 	return 输出内容;
 }
+//请求日志记录新增是否调用功能
+async function 请求日志记录(env, request, 访问IP, 请求类型 = "Get_SUB", config_JSON, 是否写入KV日志 = true, 是否通知TG = true) {
+    try {
+        const 当前时间 = new Date();
+        const 日志内容 = {
+            TYPE: 请求类型,
+            IP: 访问IP,
+            ASN: `AS${request.cf.asn || '0'} ${request.cf.asOrganization || 'Unknown'}`,
+            CC: `${request.cf.country || 'N/A'} ${request.cf.city || 'N/A'}`,
+            URL: request.url,
+            UA: request.headers.get('User-Agent') || 'Unknown',
+            TIME: 当前时间.getTime()
+        };
 
-async function 请求日志记录(env, request, 访问IP, 请求类型 = "Get_SUB", config_JSON, 是否写入KV日志 = true) {
-	try {
-		const 当前时间 = new Date();
-		const 日志内容 = { TYPE: 请求类型, IP: 访问IP, ASN: `AS${request.cf.asn || '0'} ${request.cf.asOrganization || 'Unknown'}`, CC: `${request.cf.country || 'N/A'} ${request.cf.city || 'N/A'}`, URL: request.url, UA: request.headers.get('User-Agent') || 'Unknown', TIME: 当前时间.getTime() };
-		if (config_JSON.TG.启用) {
-			try {
-				const TG_TXT = await env.KV.get('tg.json');
-				const TG_JSON = JSON.parse(TG_TXT);
-				if (TG_JSON?.BotToken && TG_JSON?.ChatID) {
-					const asnHuman = parseASN(日志内容.ASN);//新增ASN翻译
-					const 请求时间 = new Date(日志内容.TIME).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-					const 请求URL = new URL(日志内容.URL);
-					const cfRay = request.headers.get("cf-ray");
-					const referer = request.headers.get("referer");
-					const lang = request.headers.get("accept-language");
-					const token = 请求URL.searchParams.get("token");
-					const ipType = 日志内容.IP.includes(":") ? "IPv6" : "IPv4";
-					const msg = `<b>#${config_JSON.优选订阅生成.SUBNAME} 日志通知</b>\n\n` +
-					`📌 <b>类型：</b>#${日志内容.TYPE}\n` +
-					`🆔 <b>CF-Ray：</b><code>${cfRay}</code>\n` +
-					`🌐 <b>IP：</b><code>${日志内容.IP}</code> (${ipType})\n` +
-					`📍 <b>位置：</b>${日志内容.CC}\n` +
-					`🏢 <b>ASN：</b>${asnHuman} <code>(${日志内容.ASN})</code>\n` +
-					`🔑 <b>Token：</b><code>${token || '无'}</code>\n` +
-					`🔗 <b>域名：</b><code>${请求URL.host}</code>\n` +
-					`🔍 <b>路径：</b><code>${请求URL.pathname + 请求URL.search}</code>\n` +
-					`🌍 <b>来源：</b><code>${referer || 'Direct'}</code>\n` +
-					`📊 <b>CF来源：</b><code>${config_JSON?.CF?.source || "未知"}</code>\n` +
-					`🌐 <b>语言：</b>${lang || '未知'}\n` +
-					`📮 <b>方法：</b>${request.method}\n` +
-					`🤖 <b>UA：</b><code>${日志内容.UA}</code>\n` +
-					`📅 <b>时间：</b>${请求时间}\n` +
-					`${config_JSON.CF.Usage.success ? 
-					`📊 <b>请求用量：</b>${config_JSON.CF.Usage.total}/${config_JSON.CF.Usage.max} <b>${((config_JSON.CF.Usage.total / config_JSON.CF.Usage.max) * 100).toFixed(2)}%</b>\n` : ''}`;
-					await fetch(`https://api.telegram.org/bot${TG_JSON.BotToken}/sendMessage?chat_id=${TG_JSON.ChatID}&parse_mode=HTML&text=${encodeURIComponent(msg)}`, {
-						method: 'GET',
-						headers: {
-							'Accept': 'text/html,application/xhtml+xml,application/xml;',
-							'Accept-Encoding': 'gzip, deflate, br',
-							'User-Agent': 日志内容.UA || 'Unknown',
-						}
-					});
-				}
-			} catch (error) { console.error(`读取tg.json出错: ${error.message}`) }
-		}
-		是否写入KV日志 = ['1', 'true'].includes(env.OFF_LOG) ? false : 是否写入KV日志;
-		if (!是否写入KV日志) return;
-		let 日志数组 = [];
-		const 现有日志 = await env.KV.get('log.json'), KV容量限制 = 4;//MB
-		if (现有日志) {
-			try {
-				日志数组 = JSON.parse(现有日志);
-				if (!Array.isArray(日志数组)) { 日志数组 = [日志内容] }
-				else if (请求类型 !== "Get_SUB") {
-					const 三十分钟前时间戳 = 当前时间.getTime() - 30 * 60 * 1000;
-					if (日志数组.some(log => log.TYPE !== "Get_SUB" && log.IP === 访问IP && log.URL === request.url && log.UA === (request.headers.get('User-Agent') || 'Unknown') && log.TIME >= 三十分钟前时间戳)) return;
-					日志数组.push(日志内容);
-					while (JSON.stringify(日志数组, null, 2).length > KV容量限制 * 1024 * 1024 && 日志数组.length > 0) 日志数组.shift();
-				} else {
-					日志数组.push(日志内容);
-					while (JSON.stringify(日志数组, null, 2).length > KV容量限制 * 1024 * 1024 && 日志数组.length > 0) 日志数组.shift();
-				}
-			} catch (e) { 日志数组 = [日志内容] }
-		} else { 日志数组 = [日志内容] }
-		await env.KV.put('log.json', JSON.stringify(日志数组, null, 2));
-	} catch (error) { console.error(`日志记录失败: ${error.message}`) }
+        // ✅ 仅在允许 TG 通知时发送
+        if (config_JSON.TG.启用 && 是否通知TG) {
+            try {
+                const TG_TXT = await env.KV.get('tg.json');
+                const TG_JSON = JSON.parse(TG_TXT);
+                if (TG_JSON?.BotToken && TG_JSON?.ChatID) {
+                    const asnHuman = parseASN(日志内容.ASN); // ASN 翻译
+                    const 请求时间 = new Date(日志内容.TIME).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                    const 请求URL = new URL(日志内容.URL);
+                    const cfRay = request.headers.get("cf-ray");
+                    const referer = request.headers.get("referer");
+                    const lang = request.headers.get("accept-language");
+                    const token = 请求URL.searchParams.get("token");
+                    const ipType = 日志内容.IP.includes(":") ? "IPv6" : "IPv4";
+                    const msg = `<b>#${config_JSON.优选订阅生成.SUBNAME} 日志通知</b>\n\n` +
+                        `📌 <b>类型：</b>#${日志内容.TYPE}\n` +
+                        `🆔 <b>CF-Ray：</b><code>${cfRay}</code>\n` +
+                        `🌐 <b>IP：</b><code>${日志内容.IP}</code> (${ipType})\n` +
+                        `📍 <b>位置：</b>${日志内容.CC}\n` +
+                        `🏢 <b>ASN：</b>${asnHuman} <code>(${日志内容.ASN})</code>\n` +
+                        `🔑 <b>Token：</b><code>${token || '无'}</code>\n` +
+                        `🔗 <b>域名：</b><code>${请求URL.host}</code>\n` +
+                        `🔍 <b>路径：</b><code>${请求URL.pathname + 请求URL.search}</code>\n` +
+                        `🌍 <b>来源：</b><code>${referer || 'Direct'}</code>\n` +
+                        `📊 <b>CF来源：</b><code>${config_JSON?.CF?.source || "未知"}</code>\n` +
+                        `🌐 <b>语言：</b>${lang || '未知'}\n` +
+                        `📮 <b>方法：</b>${request.method}\n` +
+                        `🤖 <b>UA：</b><code>${日志内容.UA}</code>\n` +
+                        `📅 <b>时间：</b>${请求时间}\n` +
+                        `${config_JSON.CF.Usage.success ?
+                            `📊 <b>请求用量：</b>${config_JSON.CF.Usage.total}/${config_JSON.CF.Usage.max} <b>${((config_JSON.CF.Usage.total / config_JSON.CF.Usage.max) * 100).toFixed(2)}%</b>\n` : ''}`;
+                    await fetch(`https://api.telegram.org/bot${TG_JSON.BotToken}/sendMessage?chat_id=${TG_JSON.ChatID}&parse_mode=HTML&text=${encodeURIComponent(msg)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            'User-Agent': 日志内容.UA || 'Unknown',
+                        }
+                    });
+                }
+            } catch (error) { console.error(`读取tg.json出错: ${error.message}`) }
+        }
+
+        // 控制 KV 日志写入
+        是否写入KV日志 = ['1', 'true'].includes(env.OFF_LOG) ? false : 是否写入KV日志;
+        if (!是否写入KV日志) return;
+
+        let 日志数组 = [];
+        const 现有日志 = await env.KV.get('log.json'), KV容量限制 = 4; // MB
+        if (现有日志) {
+            try {
+                日志数组 = JSON.parse(现有日志);
+                if (!Array.isArray(日志数组)) 日志数组 = [日志内容];
+                else if (请求类型 !== "Get_SUB") {
+                    const 三十分钟前时间戳 = 当前时间.getTime() - 30 * 60 * 1000;
+                    if (日志数组.some(log => log.TYPE !== "Get_SUB" && log.IP === 访问IP && log.URL === request.url && log.UA === (request.headers.get('User-Agent') || 'Unknown') && log.TIME >= 三十分钟前时间戳)) return;
+                    日志数组.push(日志内容);
+                    while (JSON.stringify(日志数组, null, 2).length > KV容量限制 * 1024 * 1024 && 日志数组.length > 0) 日志数组.shift();
+                } else {
+                    日志数组.push(log内容);
+                    while (JSON.stringify(日志数组, null, 2).length > KV容量限制 * 1024 * 1024 && 日志数组.length > 0) 日志数组.shift();
+                }
+            } catch (e) { 日志数组 = [日志内容] }
+        } else { 日志数组 = [日志内容] }
+
+        await env.KV.put('log.json', JSON.stringify(日志数组, null, 2));
+    } catch (error) { console.error(`日志记录失败: ${error.message}`) }
 }
 //新增ASN翻译表
 function parseASN(asn){
