@@ -530,7 +530,7 @@ export default {
 
 									let index = countryCount[country];
 
-									const numMap = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁺"];
+									const numMap = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "¹⁰","¹¹","¹²","¹³","¹⁴","¹⁵","¹⁶","¹⁷","¹⁸","¹⁹","²⁰","²¹"];
 									let suffix = numMap[index] || `(${index})`;
 
 									let emoji = flagMap[country];
