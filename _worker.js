@@ -286,7 +286,6 @@ export default {
 					}
 
 					config_JSON = await 读取config_JSON(env, host, userID, UA);
-
 					if (访问路径 === 'admin/init') {// 重置配置为默认值
 						try {
 							config_JSON = await 读取config_JSON(env, host, userID, UA, true);
@@ -387,6 +386,8 @@ export default {
 					const 订阅TOKEN = await MD5MD5(host + userID), 作为优选订阅生成器 = ['1', 'true'].includes(env.BEST_SUB) && url.searchParams.get('host') === 'example.com' && url.searchParams.get('uuid') === '00000000-0000-4000-8000-000000000000' && UA.toLowerCase().includes('tunnel (https://github.com/cmliu/edge');
 					if (url.searchParams.get('token') === 订阅TOKEN || 作为优选订阅生成器) {
 						config_JSON = await 读取config_JSON(env, host, userID, UA);
+						config_JSON.API_FRAGMENT =
+						env.API_FRAGMENT === 'true';//新增TLS分片类型环境变量
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false,true));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON,true, true));
 						const ua = UA.toLowerCase();
@@ -664,30 +665,6 @@ export default {
 								反代IP池 = 请求优选API内容[3] || [];					
 								完整优选IP = [...new Set(优选IP.concat(优选API的IP))];// 原KV/API节点
 
-								// // ===== 新增3个随机优选IP =====
-
-								// try {
-
-								// 	const 随机优选结果 = await 生成随机IP(
-								// 		request,
-								// 		3, // 固定增加3个随机节点
-								// 		config_JSON.优选订阅生成.本地IP库.指定端口,
-								// 		(协议类型 === 'ss'
-								// 			? config_JSON.SS.TLS
-								// 			: true)
-								// 	);
-
-								// 	const 随机优选IP = 随机优选结果[0] || [];
-
-								// 	完整优选IP = [
-								// 		...new Set(
-								// 			完整优选IP.concat(随机优选IP)
-								// 		)
-								// 	];
-
-								// } catch (e) {
-								// 	console.log('随机优选IP生成失败:', e);
-								// }
 							} else { // 优选订阅生成器
 								let 优选订阅生成器HOST = url.searchParams.get('sub') || config_JSON.优选订阅生成.SUB;
 								const [优选生成器IP数组, 优选生成器其他节点] = await 获取优选订阅生成器数据(优选订阅生成器HOST);
@@ -5364,6 +5341,81 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 				} catch { }
 			}
 			if (预处理订阅明文内容.split('#')[0].includes('://')) {
+				// ===== 给协议节点补ECH / 分片 =====
+				if (
+					config_JSON.ECH ||
+					config_JSON.TLS分片 ||
+					config_JSON.API_FRAGMENT
+				) {
+
+					let extraParams = [];
+
+					// ===== ECH =====
+					if (config_JSON.ECH) {
+
+						const echValue = encodeURIComponent(
+							(config_JSON.ECHConfig.SNI
+								? config_JSON.ECHConfig.SNI + '+'
+								: '')
+							+ config_JSON.ECHConfig.DNS
+						);
+
+						extraParams.push(`ech=${echValue}`);
+					}
+
+					// ===== TLS分片 =====
+					if (
+						config_JSON.TLS分片 ||
+						config_JSON.API_FRAGMENT
+					) {
+
+						let fragmentValue = '';
+
+						// Web端设置优先
+						if (config_JSON.TLS分片 === 'Shadowrocket') {
+
+							fragmentValue =
+								'1,40-60,30-50,tlshello';
+
+						} else if (
+							config_JSON.TLS分片 === 'Happ'
+						) {
+
+							fragmentValue =
+								'3,1,tlshello';
+
+						}
+
+						// Web没设置时，使用API默认分片
+						else if (config_JSON.API_FRAGMENT) {
+
+							fragmentValue =
+								'1,40-60,30-50,tlshello';
+						}
+
+						if (fragmentValue) {
+
+							extraParams.push(
+								`fragment=${encodeURIComponent(fragmentValue)}`
+							);
+						}
+					}
+					// ===== 注入参数 =====
+					预处理订阅明文内容 =
+						预处理订阅明文内容.replace(
+							/(vless:\/\/[^\s#?]+(?:\?[^\s#]*)?)/gi,
+							(match) => {
+
+								// 已有query
+								if (match.includes('?')) {
+
+									return `${match}&${extraParams.join('&')}`;
+								}
+
+								return `${match}?${extraParams.join('&')}`;
+							}
+						);
+				}
 				// 处理LINK内容
 				if (API备注名) {
 					const 处理后LINK内容 = 预处理订阅明文内容.replace(/([a-z][a-z0-9+\-.]*:\/\/[^\r\n]*?)(\r?\n|$)/gi, (match, link, lineEnd) => {
