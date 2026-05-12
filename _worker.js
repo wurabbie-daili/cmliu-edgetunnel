@@ -471,6 +471,18 @@ export default {
 								let 完整优选列表 = [];
 
 								const kvData = await env.KV.get('ADD.txt');//更改后的代码
+								// ===== 环境变量额外节点 =====
+								const extraNodesRaw =
+									(env.EXTRA_NODES || '').trim();
+
+								let extraNodes = [];
+
+								if (extraNodesRaw) {
+
+									extraNodes = await 整理成数组(
+										extraNodesRaw
+									);
+								}
 
 								if (kvData) {
 								// ✅ KV节点
@@ -534,8 +546,12 @@ export default {
 								// =========================================
 								// ✅ 4. 合并
 								// =========================================
-								完整优选列表 = [...kv节点, ...随机节点];
-
+								//完整优选列表 = [...kv节点, ...随机节点];
+								完整优选列表 = [
+									...kv节点,
+									...extraNodes,
+									...随机节点
+								];
 								} else {
 								// ❌ 没KV → 原逻辑
 								完整优选列表 = (
