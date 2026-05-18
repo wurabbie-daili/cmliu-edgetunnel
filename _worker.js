@@ -10,7 +10,7 @@ const Pages静态页面 = 'https://edt-pages.github.io';
 ///////////////////////////////////////////////////////版本说明///////////////////////////////////////////////
 //一、expire 改成环境变量。(实现到期时间，剩余天数，更新时间等备注)
 //二、KV节点+3个随机节点。
-//三、节点备注修改。(KV中的按国旗+国别+序号+广告，环境变量中的按国旗+国别+序号)修改1/1
+//三、节点备注修改。(KV中的按国旗+国别+序号+广告，环境变量中的按国旗+国别+序号)
 //四、独立HOST。(共享KV时相互才不影响)
 //五、TG通知调整。(仅get_sub通知)
 //六、APIkey改成优先从环境变量中读取，env 优先，KV 兜底。
@@ -395,8 +395,8 @@ export default {
 					const 订阅TOKEN = await MD5MD5(host + userID), 作为优选订阅生成器 = ['1', 'true'].includes(env.BEST_SUB) && url.searchParams.get('host') === 'example.com' && url.searchParams.get('uuid') === '00000000-0000-4000-8000-000000000000' && UA.toLowerCase().includes('tunnel (https://github.com/cmliu/edge');
 					if (url.searchParams.get('token') === 订阅TOKEN || 作为优选订阅生成器) {
 						config_JSON = await 读取config_JSON(env, host, userID, UA);
-						config_JSON.API_FRAGMENT =
-						env.API_FRAGMENT === 'true';//新增TLS分片类型环境变量
+						// config_JSON.API_FRAGMENT =
+						// env.API_FRAGMENT === 'true';//新增TLS分片类型环境变量
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false,true));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON,true, true));
 						const ua = UA.toLowerCase();
@@ -5455,81 +5455,81 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 				} catch { }
 			}
 			if (预处理订阅明文内容.split('#')[0].includes('://')) {
-				// ===== 给协议节点补ECH / 分片 =====
-				if (
-					config_JSON.ECH ||
-					config_JSON.TLS分片 ||
-					config_JSON.API_FRAGMENT
-				) {
+				// // ===== 给协议节点补ECH / 分片 =====
+				// if (
+				// 	config_JSON.ECH ||
+				// 	config_JSON.TLS分片 ||
+				// 	config_JSON.API_FRAGMENT
+				// ) {
 
-					let extraParams = [];
+				// 	let extraParams = [];
 
-					// ===== ECH =====
-					if (config_JSON.ECH) {
+				// 	// ===== ECH =====
+				// 	if (config_JSON.ECH) {
 
-						const echValue = encodeURIComponent(
-							(config_JSON.ECHConfig.SNI
-								? config_JSON.ECHConfig.SNI + '+'
-								: '')
-							+ config_JSON.ECHConfig.DNS
-						);
+				// 		const echValue = encodeURIComponent(
+				// 			(config_JSON.ECHConfig.SNI
+				// 				? config_JSON.ECHConfig.SNI + '+'
+				// 				: '')
+				// 			+ config_JSON.ECHConfig.DNS
+				// 		);
 
-						extraParams.push(`ech=${echValue}`);
-					}
+				// 		extraParams.push(`ech=${echValue}`);
+				// 	}
 
-					// ===== TLS分片 =====
-					if (
-						config_JSON.TLS分片 ||
-						config_JSON.API_FRAGMENT
-					) {
+				// 	// ===== TLS分片 =====
+				// 	if (
+				// 		config_JSON.TLS分片 ||
+				// 		config_JSON.API_FRAGMENT
+				// 	) {
 
-						let fragmentValue = '';
+				// 		let fragmentValue = '';
 
-						// Web端设置优先
-						if (config_JSON.TLS分片 === 'Shadowrocket') {
+				// 		// Web端设置优先
+				// 		if (config_JSON.TLS分片 === 'Shadowrocket') {
 
-							fragmentValue =
-								'1,40-60,30-50,tlshello';
+				// 			fragmentValue =
+				// 				'1,40-60,30-50,tlshello';
 
-						} else if (
-							config_JSON.TLS分片 === 'Happ'
-						) {
+				// 		} else if (
+				// 			config_JSON.TLS分片 === 'Happ'
+				// 		) {
 
-							fragmentValue =
-								'3,1,tlshello';
+				// 			fragmentValue =
+				// 				'3,1,tlshello';
 
-						}
+				// 		}
 
-						// Web没设置时，使用API默认分片
-						else if (config_JSON.API_FRAGMENT) {
+				// 		// Web没设置时，使用API默认分片
+				// 		else if (config_JSON.API_FRAGMENT) {
 
-							fragmentValue =
-								'1,40-60,30-50,tlshello';
-						}
+				// 			fragmentValue =
+				// 				'1,40-60,30-50,tlshello';
+				// 		}
 
-						if (fragmentValue) {
+				// 		if (fragmentValue) {
 
-							extraParams.push(
-								`fragment=${encodeURIComponent(fragmentValue)}`
-							);
-						}
-					}
-					// ===== 注入参数 =====
-					预处理订阅明文内容 =
-						预处理订阅明文内容.replace(
-							/(vless:\/\/[^\s#?]+(?:\?[^\s#]*)?)/gi,
-							(match) => {
+				// 			extraParams.push(
+				// 				`fragment=${encodeURIComponent(fragmentValue)}`
+				// 			);
+				// 		}
+				// 	}
+				// 	// ===== 注入参数 =====
+				// 	预处理订阅明文内容 =
+				// 		预处理订阅明文内容.replace(
+				// 			/(vless:\/\/[^\s#?]+(?:\?[^\s#]*)?)/gi,
+				// 			(match) => {
 
-								// 已有query
-								if (match.includes('?')) {
+				// 				// 已有query
+				// 				if (match.includes('?')) {
 
-									return `${match}&${extraParams.join('&')}`;
-								}
+				// 					return `${match}&${extraParams.join('&')}`;
+				// 				}
 
-								return `${match}?${extraParams.join('&')}`;
-							}
-						);
-				}
+				// 				return `${match}?${extraParams.join('&')}`;
+				// 			}
+				// 		);
+				// }
 				// 处理LINK内容
 				if (API备注名) {
 					const 处理后LINK内容 = 预处理订阅明文内容.replace(/([a-z][a-z0-9+\-.]*:\/\/[^\r\n]*?)(\r?\n|$)/gi, (match, link, lineEnd) => {
