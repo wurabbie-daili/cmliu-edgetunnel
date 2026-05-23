@@ -9,7 +9,7 @@ let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org',
 const Pages静态页面 = 'https://edt-pages.github.io';
 ///////////////////////////////////////////////////////版本说明///////////////////////////////////////////////
 //一、expire 改成环境变量。(实现到期时间，剩余天数，更新时间等备注)
-//二、KV节点+3个随机节点(取消)。
+//二、KV节点+3个随机节点。
 //三、节点备注修改。(KV中的按国旗+国别+序号+广告，环境变量中的按国旗+国别+序号)
 //四、独立HOST。(共享KV时相互才不影响)
 //五、TG通知调整。(仅get_sub通知)
@@ -122,10 +122,111 @@ function detectCountry(text) {
   }
   return null;
 }
+function 最终统一编号(订阅文本) {
+
+	const countryCounter = {};
+
+	return 订阅文本
+		.split('\n')
+		.map(line => {
+
+			if (!line.includes('#'))
+				return line;
+
+			const hashIndex = line.lastIndexOf('#');
+
+			const base = line.slice(0, hashIndex);
+
+			let remark = decodeURIComponent(
+				line.slice(hashIndex + 1)
+			);
+
+			// 去掉旧序号
+			remark = remark
+				.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, '')
+				.replace(/\(\d+\)/g, '')
+				.trim();
+
+			const country = detectCountry(remark);
+
+			if (!country)
+				return line;
+
+			// 重新计数
+			if (!countryCounter[country]) {
+
+				countryCounter[country] = 1;
+
+			} else {
+
+				countryCounter[country]++;
+
+			}
+
+			const index = countryCounter[country];
+
+			const suffix =
+				toSuperscript(index) || `(${index})`;
+
+			const emoji =
+				flagMap[country] || '🏳️';
+
+			// 替换国家
+			let matchedKeyword = null;
+
+			for (const k of countryMap[country]) {
+
+				if (
+					remark.toLowerCase()
+					.includes(k.toLowerCase())
+				) {
+
+					matchedKeyword = k;
+					break;
+				}
+			}
+			// ===== 清理国家关键词 =====
+			let cleanedRemark = remark;
+			// ===== 自动加入国家名自身 =====
+			const 清理关键词 = [
+				country,
+				...(countryMap[country] || [])
+			];
+
+			for (const k of 清理关键词) {
+
+				const reg = new RegExp(
+					k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+					'ig'
+				);
+
+				cleanedRemark =
+					cleanedRemark.replace(reg, '');
+			}
+
+			cleanedRemark = cleanedRemark
+				.replace(/\s+/g, ' ')
+				.trim();
+						const newRemark =
+				`${emoji}${country}${suffix}`
+				+ (cleanedRemark ? ` ${cleanedRemark}` : '');
+						const 去重Remark = newRemark
+				.replace(
+					new RegExp(`(${country})\\s*(${country})`, 'ig'),
+					country
+				)
+				.replace(/\s+/g, ' ')
+				.trim();
+
+						return base + '#'
+							+ encodeURIComponent(去重Remark);
+
+					})
+					.join('\n');
+}
 
 export default {
 	async fetch(request, env, ctx) {
-		const countryCount = {};//国家计数必须放在循环外面
 		let 请求URL文本 = request.url.replace(/%5[Cc]/g, '').replace(/\\/g, '');
 		const 请求URL锚点索引 = 请求URL文本.indexOf('#');
 		const 请求URL主体部分 = 请求URL锚点索引 === -1 ? 请求URL文本 : 请求URL文本.slice(0, 请求URL锚点索引);
@@ -661,21 +762,6 @@ export default {
 										if (!country)
 											return null;
 
-										// ===== 国家编号 =====
-										if (!countryCount[country]) {
-											countryCount[country] = 1;
-										} else {
-											countryCount[country]++;
-										}
-
-										const index =
-											countryCount[country];
-
-										const suffix =
-											toSuperscript(index) || `(${index})`;
-
-										const emoji =
-											flagMap[country] || "🏳️";
 
 										// ===== 最终备注 =====
 										const 自定义备注 =
@@ -685,19 +771,13 @@ export default {
 										const 来自EXTRA =
 											remark.includes('__EXTRA__');
 
-										// 清理标记
-										remark = remark
-											.replace('__EXTRA__', '')
-											.trim();
-
 										let newRemark = '';
 
-										// ===== EXTRA_NODES =====
-										// 只保留国家
+										// ===== EXTRA_NODES只保留国家 =====
 										if (来自EXTRA) {
 
 											newRemark =
-												`${emoji} ${country}${suffix}`;
+												`${country}`;
 
 										}
 
@@ -719,37 +799,12 @@ export default {
 													break;
 												}
 											}
-
-											if (!matchedKeyword)
-												return null;
-
 											let cleanedRemark = remark;
-
-											// 清理重复国家词
-											for (const k of countryMap[country]) {
-
-												if (
-													k.toLowerCase() !==
-													matchedKeyword.toLowerCase()
-												) {
-
-													const reg =
-														new RegExp(k, "ig");
-
-													cleanedRemark =
-														cleanedRemark.replace(reg, '');
-												}
-											}
-
 											cleanedRemark =
 												cleanedRemark.trim();
+											newRemark = cleanedRemark;
 
-											// 替换国家字段
-											newRemark =
-												cleanedRemark.replace(
-													new RegExp(matchedKeyword, "i"),
-													`${emoji} ${country}${suffix}`
-												);
+											
 										}
 
 										// ===== 添加自定义备注 =====
@@ -815,16 +870,6 @@ export default {
 									let country = detectCountry(originalRemark);
 
 									if (country) {
-									// 初始化计数
-										if (!countryCount[country]) {
-											countryCount[country] = 1;
-										} else {
-											countryCount[country]++;
-										}
-
-										let index = countryCount[country];
-
-										let suffix = toSuperscript(index) || `(${index})`;
 
 										let emoji = flagMap[country];
 
@@ -840,28 +885,7 @@ export default {
 											}
 										}
 
-										if (matchedKeyword) {
-											let suffix = toSuperscript(index) || `(${index})`;
-											let emoji = flagMap[country] || "🏳️";
-
-											// ===== 关键：清理同类关键词 =====
-											let cleanedRemark = originalRemark;
-
-											for (const k of countryMap[country]) {
-												// 只清理“不是当前命中的那个关键词”
-												if (k.toLowerCase() !== matchedKeyword.toLowerCase()) {
-													const reg = new RegExp(k, "ig");
-													cleanedRemark = cleanedRemark.replace(reg, "");
-												}
-											}
-											cleanedRemark = cleanedRemark.trim();
-
-											// ===== 最终替换 =====
-											节点备注 = cleanedRemark.replace(
-												new RegExp(matchedKeyword, "i"),
-												`${emoji} ${country}${suffix}`
-											);
-										}
+										节点备注 = originalRemark;
 									}
 									// ===== 自动替换备注 =====更改1
 
@@ -923,6 +947,7 @@ export default {
 								}
 							}).filter(item => item !== null).join('\n')
 							+ (其他节点LINK ? '\n' + 其他节点LINK.trim() : '');//其他节点LINK放最后更改2
+							订阅内容 = 最终统一编号(订阅内容);
 						} else { // 订阅转换
 							const 订阅转换URL = `${config_JSON.订阅转换配置.SUBAPI}/sub?target=${订阅类型}&url=${encodeURIComponent(url.protocol + '//' + url.host + '/sub?target=mixed&token=' + 订阅TOKEN + (url.searchParams.has('sub') && url.searchParams.get('sub') != '' ? `&sub=${url.searchParams.get('sub')}` : ''))}&config=${encodeURIComponent(config_JSON.订阅转换配置.SUBCONFIG)}&emoji=${config_JSON.订阅转换配置.SUBEMOJI}&scv=${config_JSON.跳过证书验证}`;
 							try {
