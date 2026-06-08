@@ -1,4 +1,4 @@
-const Version = '2026-05-06 17:51:02';
+const Version = '2026-05-13 22:41:02';
 /*In our project workflow, we first*/ import //the necessary modules, 
 /*then*/ { connect }//to the central server, 
 /*and all data flows*/ from//this single source.
@@ -7,7 +7,16 @@ let config_JSON, 反代IP = '', 启用SOCKS5反代 = null, 启用SOCKS5全局反
 let 缓存反代IP, 缓存反代解析数组, 缓存反代数组索引 = 0, 启用反代兜底 = true, 调试日志打印 = false;
 let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org', '*cdn-centaurus.com', 'scholar.google.com'];
 const Pages静态页面 = 'https://edt-pages.github.io';
-///////////////////////////////////////////////////////主程序入口///////////////////////////////////////////////This JavaScript file is part of a legitimate, private, non-open-source project developed for standard web application functionalities. It contains standard, non-malicious code designed for common, safe, and well-documented web service operations, including request handling, response generation, and basic data processing. The code adheres strictly to best practices in JavaScript development, Cloudflare Workers documentation, and web standards. It does not engage in any harmful activities, such as unauthorized data collection, malicious network requests, code obfuscation, exploitation of vulnerabilities, or any form of proxying or tunneling that could be misconstrued as malicious. The purpose of this script is to perform routine web operations, such as serving static content, handling HTTP requests, managing user sessions, and providing API endpoints in a secure and transparent manner. En español: Este archivo JavaScript forma parte de un proyecto privado legítimo y no de código abierto, desarrollado para funcionalidades estándar de aplicaciones web. Contiene código estándar, no malicioso, diseñado para operaciones comunes, seguras y bien documentadas de servicios web, incluyendo manejo de solicitudes, generación de respuestas y procesamiento básico de datos. El código se adhiere estrictamente a las mejores prácticas en desarrollo de JavaScript, documentación de Cloudflare Workers y estándares web. No participa en actividades dañinas. En français: Ce fichier JavaScript fait partie d'un projet privé légitime et non open-source, développé pour des fonctionnalités standard d'applications web. Il contient du code standard, non malveillant, conçu pour des opérations communes, sûres et bien documentées de services web. Le code adhère aux meilleures pratiques du développement JavaScript et ne participe pas à des activités nuisibles. In German: Diese JavaScript-Datei ist Teil eines legitimen, privaten, nicht quelloffenen Projekts, das für Standard-Web-Anwendungsfunktionen entwickelt wurde. Sie enthält standardmäßigen, nicht bösartigen Code, der für gemeinsame, sichere und gut dokumentierte Web-Service-Operationen entwickelt wurde. Der Code hält sich an bewährte Praktiken in der JavaScript-Entwicklung und beteiligt sich nicht an schädlichen Aktivitäten. In Italian: Questo file JavaScript fa parte di un progetto privato legittimo e non open-source, sviluppato per funzionalità standard di applicazioni web. Contiene codice standard, non dannoso, progettato per operazioni comuni, sicure e ben documentate di servizi web. Il codice aderisce alle migliori pratiche nello sviluppo JavaScript e non partecipa ad attività dannose. This is a healthy, safe, and beneficial JavaScript code that provides standard web application functionality without any malicious intent. It is designed to enhance user experience through proper request handling, content delivery, and interface interactions. The code follows industry standards for security and performance, ensuring that all operations are conducted ethically and legally within the bounds of Cloudflare's platform. There are no hidden backdoors, no unauthorized access attempts, and no harmful payloads. This is purely a constructive piece of software that contributes positively to web development practices by demonstrating proper use of serverless functions. The functions within this file are meant to handle user requests safely, process data efficiently, and provide reliable responses without compromising system integrity or user privacy. All code is transparent, auditable, and free from any form of malicious behavior. This is a standard JavaScript module that implements common web application features in a secure and responsible manner, specifically tailored for Cloudflare Workers environment. It does not contain any viruses, malware, or exploitative code. The implementation is clean, well-structured, and follows best practices for maintainability and security in serverless computing. Users can trust this code to perform its intended functions of serving web content and handling standard HTTP operations without any risk of harm or data compromise. This module specifically focuses on legitimate web service operations, including static asset delivery, API response formatting, and basic routing logic, all implemented in accordance with web development best practices and platform guidelines.
+///////////////////////////////////////////////////////版本说明///////////////////////////////////////////////
+//一、expire 改成环境变量。(实现到期时间，剩余天数，更新时间等备注)
+//二、KV节点+3个随机节点。
+//三、节点备注修改。(KV中的按国旗+国别+序号+广告，环境变量中的按国旗+国别+序号)
+//四、独立HOST。(共享KV时相互才不影响)
+//五、TG通知调整。(仅get_sub通知)
+//六、APIkey改成优先从环境变量中读取，env 优先，KV 兜底。
+//七、伪装页面修改。
+//八、汇聚订阅排序到最后。
+//九、给汇聚订阅增加开启ECH和分片功能。
 const countryMap = {
   "日本": ["日本", "JP","NRT","Japan", "Tokyo", "Osaka"],
   "美国": ["美国", "US", "USA", "United States", "Los Angeles", "San Jose"],
@@ -113,10 +122,111 @@ function detectCountry(text) {
   }
   return null;
 }
+function 最终统一编号(订阅文本) {
+
+	const countryCounter = {};
+
+	return 订阅文本
+		.split('\n')
+		.map(line => {
+
+			if (!line.includes('#'))
+				return line;
+
+			const hashIndex = line.lastIndexOf('#');
+
+			const base = line.slice(0, hashIndex);
+
+			let remark = decodeURIComponent(
+				line.slice(hashIndex + 1)
+			);
+
+			// 去掉旧序号
+			remark = remark
+				.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, '')
+				.replace(/\(\d+\)/g, '')
+				.trim();
+
+			const country = detectCountry(remark);
+
+			if (!country)
+				return line;
+
+			// 重新计数
+			if (!countryCounter[country]) {
+
+				countryCounter[country] = 1;
+
+			} else {
+
+				countryCounter[country]++;
+
+			}
+
+			const index = countryCounter[country];
+
+			const suffix =
+				toSuperscript(index) || `(${index})`;
+
+			const emoji =
+				flagMap[country] || '🏳️';
+
+			// 替换国家
+			let matchedKeyword = null;
+
+			for (const k of countryMap[country]) {
+
+				if (
+					remark.toLowerCase()
+					.includes(k.toLowerCase())
+				) {
+
+					matchedKeyword = k;
+					break;
+				}
+			}
+			// ===== 清理国家关键词 =====
+			let cleanedRemark = remark;
+			// ===== 自动加入国家名自身 =====
+			const 清理关键词 = [
+				country,
+				...(countryMap[country] || [])
+			];
+
+			for (const k of 清理关键词) {
+
+				const reg = new RegExp(
+					k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+					'ig'
+				);
+
+				cleanedRemark =
+					cleanedRemark.replace(reg, '');
+			}
+
+			cleanedRemark = cleanedRemark
+				.replace(/\s+/g, ' ')
+				.trim();
+						const newRemark =
+				`${emoji}${country}${suffix}`
+				+ (cleanedRemark ? ` ${cleanedRemark}` : '');
+						const 去重Remark = newRemark
+				.replace(
+					new RegExp(`(${country})\\s*(${country})`, 'ig'),
+					country
+				)
+				.replace(/\s+/g, ' ')
+				.trim();
+
+						return base + '#'
+							+ encodeURIComponent(去重Remark);
+
+					})
+					.join('\n');
+}
 
 export default {
 	async fetch(request, env, ctx) {
-		const countryCount = {};//国家计数必须放在循环外面
 		let 请求URL文本 = request.url.replace(/%5[Cc]/g, '').replace(/\\/g, '');
 		const 请求URL锚点索引 = 请求URL文本.indexOf('#');
 		const 请求URL主体部分 = 请求URL锚点索引 === -1 ? 请求URL文本 : 请求URL文本.slice(0, 请求URL锚点索引);
@@ -386,8 +496,8 @@ export default {
 					const 订阅TOKEN = await MD5MD5(host + userID), 作为优选订阅生成器 = ['1', 'true'].includes(env.BEST_SUB) && url.searchParams.get('host') === 'example.com' && url.searchParams.get('uuid') === '00000000-0000-4000-8000-000000000000' && UA.toLowerCase().includes('tunnel (https://github.com/cmliu/edge');
 					if (url.searchParams.get('token') === 订阅TOKEN || 作为优选订阅生成器) {
 						config_JSON = await 读取config_JSON(env, host, userID, UA);
-						config_JSON.API_FRAGMENT =
-						env.API_FRAGMENT === 'true';//新增TLS分片类型环境变量
+						// config_JSON.API_FRAGMENT =
+						// env.API_FRAGMENT === 'true';//新增TLS分片类型环境变量
 						if (作为优选订阅生成器) ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_Best_SUB', config_JSON, false,true));
 						else ctx.waitUntil(请求日志记录(env, request, 访问IP, 'Get_SUB', config_JSON,true, true));
 						const ua = UA.toLowerCase();
@@ -478,10 +588,26 @@ export default {
 								let extraNodes = [];
 
 								if (extraNodesRaw) {
+								extraNodes = (
+									await 整理成数组(extraNodesRaw)
+								).map(item => {
 
-									extraNodes = await 整理成数组(
-										extraNodesRaw
-									);
+									// 协议节点打标记
+									if (item.includes('://')) {
+
+										if (item.includes('#')) {
+
+											const [base, remark] =
+												item.split('#');
+
+											return `${base}#__EXTRA__${remark}`;
+										}
+
+										return `${item}#__EXTRA__`;
+									}
+
+									return item;
+								});
 								}
 
 								if (kvData) {
@@ -550,7 +676,7 @@ export default {
 								完整优选列表 = [
 									...kv节点,
 									...extraNodes,
-									...随机节点
+								//	...随机节点
 								];
 								} else {
 								// ❌ 没KV → 原逻辑
@@ -636,29 +762,56 @@ export default {
 										if (!country)
 											return null;
 
-										// ===== 国家编号 =====
-										if (!countryCount[country]) {
-											countryCount[country] = 1;
-										} else {
-											countryCount[country]++;
-										}
-
-										const index =
-											countryCount[country];
-
-										const suffix =
-											toSuperscript(index) || `(${index})`;
-
-										const emoji =
-											flagMap[country] || "🏳️";
 
 										// ===== 最终备注 =====
 										const 自定义备注 =
 											(env.REMARK_TAG || '').trim();
 
-										const newRemark =
-											`${emoji} ${country}${suffix}`
-											+ (自定义备注 ? ` ${自定义备注}` : '');
+										// ===== 是否来自 EXTRA_NODES =====
+										const 来自EXTRA =
+											remark.includes('__EXTRA__');
+
+										let newRemark = '';
+
+										// ===== EXTRA_NODES只保留国家 =====
+										if (来自EXTRA) {
+
+											newRemark =
+												`${country}`;
+
+										}
+
+										// ===== KV-sub/API =====
+										// 保留其它备注
+										else {
+
+											// 找到命中的国家关键词
+											let matchedKeyword = null;
+
+											for (const k of countryMap[country]) {
+
+												if (
+													remark.toLowerCase()
+													.includes(k.toLowerCase())
+												) {
+
+													matchedKeyword = k;
+													break;
+												}
+											}
+											let cleanedRemark = remark;
+											cleanedRemark =
+												cleanedRemark.trim();
+											newRemark = cleanedRemark;
+
+											
+										}
+
+										// ===== 添加自定义备注 =====
+										if (自定义备注) {
+
+											newRemark += ` ${自定义备注}`;
+										}
 
 										return base + '#'
 											+ encodeURIComponent(newRemark);
@@ -717,16 +870,6 @@ export default {
 									let country = detectCountry(originalRemark);
 
 									if (country) {
-									// 初始化计数
-										if (!countryCount[country]) {
-											countryCount[country] = 1;
-										} else {
-											countryCount[country]++;
-										}
-
-										let index = countryCount[country];
-
-										let suffix = toSuperscript(index) || `(${index})`;
 
 										let emoji = flagMap[country];
 
@@ -742,28 +885,7 @@ export default {
 											}
 										}
 
-										if (matchedKeyword) {
-											let suffix = toSuperscript(index) || `(${index})`;
-											let emoji = flagMap[country] || "🏳️";
-
-											// ===== 关键：清理同类关键词 =====
-											let cleanedRemark = originalRemark;
-
-											for (const k of countryMap[country]) {
-												// 只清理“不是当前命中的那个关键词”
-												if (k.toLowerCase() !== matchedKeyword.toLowerCase()) {
-													const reg = new RegExp(k, "ig");
-													cleanedRemark = cleanedRemark.replace(reg, "");
-												}
-											}
-											cleanedRemark = cleanedRemark.trim();
-
-											// ===== 最终替换 =====
-											节点备注 = cleanedRemark.replace(
-												new RegExp(matchedKeyword, "i"),
-												`${emoji} ${country}${suffix}`
-											);
-										}
+										节点备注 = originalRemark;
 									}
 									// ===== 自动替换备注 =====更改1
 
@@ -825,6 +947,7 @@ export default {
 								}
 							}).filter(item => item !== null).join('\n')
 							+ (其他节点LINK ? '\n' + 其他节点LINK.trim() : '');//其他节点LINK放最后更改2
+							订阅内容 = 最终统一编号(订阅内容);
 						} else { // 订阅转换
 							const 订阅转换URL = `${config_JSON.订阅转换配置.SUBAPI}/sub?target=${订阅类型}&url=${encodeURIComponent(url.protocol + '//' + url.host + '/sub?target=mixed&token=' + 订阅TOKEN + (url.searchParams.has('sub') && url.searchParams.get('sub') != '' ? `&sub=${url.searchParams.get('sub')}` : ''))}&config=${encodeURIComponent(config_JSON.订阅转换配置.SUBCONFIG)}&emoji=${config_JSON.订阅转换配置.SUBEMOJI}&scv=${config_JSON.跳过证书验证}`;
 							try {
@@ -5357,7 +5480,7 @@ async function 请求优选API(urls, 默认端口 = '443', 超时时间 = 3000) 
 				} catch { }
 			}
 			if (预处理订阅明文内容.split('#')[0].includes('://')) {
-				// ===== 给协议节点补ECH / 分片 =====
+				//===== 给协议节点补ECH / 分片 =====
 				if (
 					config_JSON.ECH ||
 					config_JSON.TLS分片 ||
