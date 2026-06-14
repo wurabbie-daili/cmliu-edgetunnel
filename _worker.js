@@ -23,6 +23,7 @@ const countryMap = {
   "新加坡": ["新加坡", "SG", "SIN","Singapore"],
   "韩国": ["韩国", "KR", "Korea", "Seoul"],
   "中国香港": ["香港", "HK", "Hong Kong"],
+  "中国澳门": ["澳门", "中国澳门", "MO", "Macau", "Macao"],
   "中国台北": ["台湾", "台北", "TW", "Taiwan", "Taipei"],
   "英国": ["英国", "UK", "United Kingdom", "London"],
   "德国": ["德国", "DE", "Germany", "Frankfurt"],
@@ -60,6 +61,7 @@ const flagMap = {
   "新加坡": "🇸🇬",
   "韩国": "🇰🇷",
   "中国香港": "🇭🇰",
+  "中国澳门": "🇲🇴",
   "中国台北": "🇹🇼",
   "英国": "🇬🇧",
   "德国": "🇩🇪",
@@ -600,10 +602,10 @@ export default {
 											const [base, remark] =
 												item.split('#');
 
-											return `${base}#__EXTRA__${remark}`;
+											return `${base}#__EXTTA__${remark}`;
 										}
 
-										return `${item}#__EXTRA__`;
+										return `${item}#__EXTTA__`;
 									}
 
 									return item;
@@ -769,7 +771,7 @@ export default {
 
 										// ===== 是否来自 EXTRA_NODES =====
 										const 来自EXTRA =
-											remark.includes('__EXTRA__');
+											remark.includes('__EXTTA__');
 
 										let newRemark = '';
 
