@@ -732,7 +732,12 @@ export default {
 
 								// ===== 严格处理协议节点 =====
 								const 修改后的其他节点数组 =
-									合并其他节点数组.map(link => {
+								  合并其他节点数组.map(link => {
+								
+								    // VMESS节点直接保留
+									    if (link.toLowerCase().startsWith('vmess://')) {
+									        return link;
+									    }
 
 									try {
 
