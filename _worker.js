@@ -737,22 +737,22 @@ export default {
 								}
 								const 请求优选API内容 = await 请求优选API(优选API, '443');
 								// ===== API节点打标记 =====
-								if (Array.isArray(请求优选API内容[1])) {
-									请求优选API内容[1] = 请求优选API内容[1].map(link => {
+if (Array.isArray(请求优选API内容[1])) {
+    请求优选API内容[1] = 请求优选API内容[1].map(link => {
 
-										const hashIndex = link.lastIndexOf('#');
+        const hashIndex = link.lastIndexOf('#');
 
-										// 没备注
-										if (hashIndex === -1) {
-											return link + '#__API__';
-										}
+        // 没备注
+        if (hashIndex === -1) {
+            return link + '#__API__';
+        }
 
-										const base = link.slice(0, hashIndex);
-										const remark = link.slice(hashIndex + 1);
+        const base = link.slice(0, hashIndex);
+        const remark = link.slice(hashIndex + 1);
 
-										return `${base}#__API__${remark}`;
-									});
-								}
+        return `${base}#__API__${remark}`;
+    });
+}
 								const 合并其他节点数组 = [
 								    ...new Set(
 								        (请求优选API内容[1] || [])
@@ -784,8 +784,8 @@ export default {
 											link.slice(hashIndex + 1)
 										);
 										// ===== 是否来自API =====
-										const 来自API =
-											remark.includes('__API__');
+const 来自API =
+    remark.includes('__API__');
 
 										// 清理emoji
 										remark = remark
@@ -794,61 +794,65 @@ export default {
 												""
 											)
 											.trim();
-										// 没识别到国家 → 删除节点
-										if (!country)
-											return null;
+
 										// ===== 国家识别 =====
 										const country =
 											detectCountry(remark);
 										// ===== API节点国家数量限制 =====
-										if (来自API) {
+if (来自API) {
 
-											if (!globalThis.__ALLOW_COUNTRIES__) {
+    if (!globalThis.__ALLOW_COUNTRIES__) {
 
-												const allowMap = {};
+        const allowMap = {};
 
-												const raw =
-													(env.ALLOW_COUNTRIES || '').trim();
+        const raw =
+            (env.ALLOW_COUNTRIES || '').trim();
 
-												if (raw) {
+        if (raw) {
 
-													raw.split(',').forEach(item => {
+            raw.split(',').forEach(item => {
 
-														const m =
-															item.trim().match(/^(.+?)(\d+)$/);
+                const m =
+                    item.trim().match(/^(.+?)(\d+)$/);
 
-														if (m) {
+                if (m) {
 
-															allowMap[m[1].trim()] =
-																Number(m[2]);
-														}
+                    allowMap[m[1].trim()] =
+                        Number(m[2]);
+                }
 
-													});
+            });
 
-												}
+        }
 
-												globalThis.__ALLOW_COUNTRIES__ = allowMap;
-												globalThis.__ALLOW_COUNTS__ = {};
+        globalThis.__ALLOW_COUNTRIES__ = allowMap;
+        globalThis.__ALLOW_COUNTS__ = {};
 
-											}
+    }
 
-											const allowMap =
-												globalThis.__ALLOW_COUNTRIES__;
+    const allowMap =
+        globalThis.__ALLOW_COUNTRIES__;
 
-											const counts =
-												globalThis.__ALLOW_COUNTS__;
+    const counts =
+        globalThis.__ALLOW_COUNTS__;
 
-											// 不在允许国家内
-											if (!(country in allowMap))
-												return null;
+    // 不在允许国家内
+    if (!(country in allowMap))
+        return null;
 
-											counts[country] =
-												(counts[country] || 0) + 1;
+    counts[country] =
+        (counts[country] || 0) + 1;
 
-											// 超过数量
-											if (counts[country] > allowMap[country])
-												return null;
-										}
+    // 超过数量
+    if (counts[country] > allowMap[country])
+        return null;
+}
+
+										// 没识别到国家 → 删除节点
+										if (!country)
+											return null;
+										
+
 
 										// ===== 最终备注 =====
 										const 自定义备注 =
@@ -888,9 +892,9 @@ export default {
 											}
 											let cleanedRemark = remark;
 
-										cleanedRemark = cleanedRemark
-											.replace('__API__', '')
-											.trim();
+cleanedRemark = cleanedRemark
+    .replace('__API__', '')
+    .trim();
 											newRemark = cleanedRemark;
 
 											
