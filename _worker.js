@@ -14,7 +14,6 @@ const 特征码字典 = [
 	(String.fromCharCode(67, 109) + URL.name[2] + 'i' + URL.name[0]).toLowerCase(),
 	String(2407 * 300 - 10).split('').reverse().join('')
 ];
-
 const countryMap = {
   "日本": ["日本", "JP","NRT","Japan", "Tokyo", "Osaka"],
   "美国": ["美国", "US", "USA", "United States", "Los Angeles", "San Jose"],
@@ -737,6 +736,23 @@ export default {
 									}
 								}
 								const 请求优选API内容 = await 请求优选API(优选API, '443');
+								// ===== API节点打标记 =====
+								if (Array.isArray(请求优选API内容[1])) {
+									请求优选API内容[1] = 请求优选API内容[1].map(link => {
+
+										const hashIndex = link.lastIndexOf('#');
+
+										// 没备注
+										if (hashIndex === -1) {
+											return link + '#__API__';
+										}
+
+										const base = link.slice(0, hashIndex);
+										const remark = link.slice(hashIndex + 1);
+
+										return `${base}#__API__${remark}`;
+									});
+								}
 								const 合并其他节点数组 = [
 								    ...new Set(
 								        (请求优选API内容[1] || [])
@@ -767,6 +783,9 @@ export default {
 										let remark = decodeURIComponent(
 											link.slice(hashIndex + 1)
 										);
+										// ===== 是否来自API =====
+										const 来自API =
+											remark.includes('__API__');
 
 										// 清理emoji
 										remark = remark
@@ -775,15 +794,61 @@ export default {
 												""
 											)
 											.trim();
-
-										// ===== 国家识别 =====
-										const country =
-											detectCountry(remark);
-
 										// 没识别到国家 → 删除节点
 										if (!country)
 											return null;
+										// ===== 国家识别 =====
+										const country =
+											detectCountry(remark);
+										// ===== API节点国家数量限制 =====
+										if (来自API) {
 
+											if (!globalThis.__ALLOW_COUNTRIES__) {
+
+												const allowMap = {};
+
+												const raw =
+													(env.ALLOW_COUNTRIES || '').trim();
+
+												if (raw) {
+
+													raw.split(',').forEach(item => {
+
+														const m =
+															item.trim().match(/^(.+?)(\d+)$/);
+
+														if (m) {
+
+															allowMap[m[1].trim()] =
+																Number(m[2]);
+														}
+
+													});
+
+												}
+
+												globalThis.__ALLOW_COUNTRIES__ = allowMap;
+												globalThis.__ALLOW_COUNTS__ = {};
+
+											}
+
+											const allowMap =
+												globalThis.__ALLOW_COUNTRIES__;
+
+											const counts =
+												globalThis.__ALLOW_COUNTS__;
+
+											// 不在允许国家内
+											if (!(country in allowMap))
+												return null;
+
+											counts[country] =
+												(counts[country] || 0) + 1;
+
+											// 超过数量
+											if (counts[country] > allowMap[country])
+												return null;
+										}
 
 										// ===== 最终备注 =====
 										const 自定义备注 =
@@ -822,8 +887,10 @@ export default {
 												}
 											}
 											let cleanedRemark = remark;
-											cleanedRemark =
-												cleanedRemark.trim();
+
+										cleanedRemark = cleanedRemark
+											.replace('__API__', '')
+											.trim();
 											newRemark = cleanedRemark;
 
 											
@@ -973,8 +1040,8 @@ export default {
 									return `${协议类型}://00000000-0000-4000-8000-000000000000@${节点地址}:${节点端口}?security=tls&type=${传输协议 + ECHLINK参数}&${域名字段名}=example.com&fp=${config_JSON.Fingerprint}&sni=example.com&${路径字段名}=${encodeURIComponent(传输路径参数值) + TLS分片参数}&encryption=none#${encodeURIComponent(节点备注)}`;
 								}
 							}).filter(item => item !== null).join('\n')
-							+ (其他节点LINK ? '\n' + 其他节点LINK.trim() : '');//其他节点LINK放最后更改2
-							订阅内容 = 最终统一编号(订阅内容);
+							+ (其他节点LINK ? '\n' + 其他节点LINK.trim() : '');
+							订阅内容 = 最终统一编号(订阅内容);//其他节点LINK放最后更改2
 						} else { // 订阅转换
 							const 订阅转换URL = `${config_JSON.订阅转换配置.SUBAPI}/sub?target=${订阅类型}&url=${encodeURIComponent(url.protocol + '//' + url.host + '/sub?target=mixed&token=' + 今日订阅转换后端专属TOKEN + '&cnIspCode=' + 识别运营商(request) + (url.searchParams.has('sub') && url.searchParams.get('sub') != '' ? `&sub=${url.searchParams.get('sub')}` : ''))}&config=${encodeURIComponent(config_JSON.订阅转换配置.SUBCONFIG)}&emoji=${config_JSON.订阅转换配置.SUBEMOJI}&list=${config_JSON.订阅转换配置.SUBLIST}&scv=${config_JSON.跳过证书验证}`;
 							try {
