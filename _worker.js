@@ -1,4 +1,4 @@
-const Version = '2026-06-17 01:07:04';
+const Version = '2026-06-17 01:07:05';
 let config_JSON, 反代IP = '', 启用SOCKS5反代 = null, 启用SOCKS5全局反代 = false, 我的SOCKS5账号 = '', parsedSocks5Address = {};
 let 缓存SOCKS5白名单 = null, 缓存反代IP, 缓存反代解析数组, 缓存反代数组索引 = 0, 启用反代兜底 = true, 调试日志打印 = false;
 let SOCKS5白名单 = ['*tapecontent.net', '*cloudatacdn.com', '*loadshare.org', '*cdn-centaurus.com', 'scholar.google.com'];
@@ -597,104 +597,20 @@ export default {
 
 							if (!url.searchParams.has('sub') && config_JSON.优选订阅生成.local) { // 本地生成订阅
 								let 完整优选列表 = [];
-
 								const kvData = await env.KV.get('ADD.txt');//更改后的代码
 								// ===== 环境变量额外节点 =====
 								const extraNodesRaw =
 									(env.EXTRA_NODES || '').trim();
-
 								let extraNodes = [];
-
 								if (extraNodesRaw) {
-								extraNodes = (
-									await 整理成数组(extraNodesRaw)
-								).map(item => {
-
-									// 协议节点打标记
-									if (item.includes('://')) {
-
-										if (item.includes('#')) {
-
-											const [base, remark] =
-												item.split('#');
-
-											return `${base}#__EXTTA__${remark}`;
-										}
-
-										return `${item}#__EXTTA__`;
-									}
-
-									return item;
-								});
+								extraNodes = await 整理成数组(extraNodesRaw);
 								}
-
 								if (kvData) {
 								// ✅ KV节点
 								const kv节点 = await 整理成数组(kvData);
-
-								// 👉 提取 KV 地址（去掉端口和备注用于去重）
-								const kv地址集合 = new Set(
-									kv节点.map(item => item.split('#')[0].split(':')[0])
-								);
-
-								// ✅ 多生成一点随机节点（用于筛选）
-								const 随机结果 = await 生成随机IP(
-									request,
-									16, // 👈 多生成（比如16个）
-									config_JSON.优选订阅生成.本地IP库.指定端口,
-									(协议类型 === 'ss' ? config_JSON.SS.TLS : true)
-								);
-
-								let 随机节点 = 随机结果[0];
-
-								// =========================================
-								// =========================================
-								// ✅ 1. 确保是数组
-								// =========================================
-								if (!Array.isArray(随机节点)) {
-								随机节点 = await 整理成数组(随机节点);
-								}
-
-								// =========================================
-								// ✅ 2. 去重（不和KV重复）
-								// =========================================
-								随机节点 = 随机节点.filter(item => {
-								const 地址 = item.split('#')[0].split(':')[0];
-								return !kv地址集合.has(地址);
-								});
-
-								// =========================================
-								// ✅ 3. 随机抽3个
-								// =========================================
-								function shuffle(arr) {
-								for (let i = arr.length - 1; i > 0; i--) {
-									const j = Math.floor(Math.random() * (i + 1));
-									[arr[i], arr[j]] = [arr[j], arr[i]];
-								}
-								return arr;
-								}
-
-								随机节点 = shuffle(随机节点).slice(0, 3);
-
-								// =========================================
-								// ✅ 4. 修改备注
-								// =========================================
-								随机节点 = 随机节点.map(item => {
-								if (item.includes('#')) {
-									return item.replace(/#(.+)/, '#🎲随机优选(依当前环境)');
-								} else {
-									return item + '#🎲随机优选(依当前环境)';
-								}
-								});
-
-								// =========================================
-								// ✅ 4. 合并
-								// =========================================
-								//完整优选列表 = [...kv节点, ...随机节点];
 								完整优选列表 = [
 									...kv节点,
 									...extraNodes,
-								//	...随机节点
 								];
 								} else {
 								// ❌ 没KV → 原逻辑
@@ -707,7 +623,6 @@ export default {
 									)
 								)[0];
 								}//更改后的代码结束
-
 								const 优选API = [], 优选IP = [], 其他节点 = [];
 								for (const 元素 of 完整优选列表) {
 									if (元素.toLowerCase().startsWith('sub://')) {
@@ -735,193 +650,107 @@ export default {
 										}
 									}
 								}
-								const 请求优选API内容 = await 请求优选API(优选API, '443');
-								// ===== API节点打标记 =====
-if (Array.isArray(请求优选API内容[1])) {
-    请求优选API内容[1] = 请求优选API内容[1].map(link => {
-
-        const hashIndex = link.lastIndexOf('#');
-
-        // 没备注
-        if (hashIndex === -1) {
-            return link + '#__API__';
-        }
-
-        const base = link.slice(0, hashIndex);
-        const remark = link.slice(hashIndex + 1);
-
-        return `${base}#__API__${remark}`;
-    });
-}
-								const 合并其他节点数组 = [
-								    ...new Set(
-								        (请求优选API内容[1] || [])
-								            .concat(其他节点)
-								    )
-								];
+								const 请求优选API内容 = await 请求优选API(优选API, '443');								
+								const API节点数组 =
+								    [...new Set(请求优选API内容[1] || [])];
+								const 原始其他节点数组 =
+								    [...new Set(其他节点)];
+								const allowMap = {};
+								const raw = (env.ALLOW_COUNTRIES || '').trim();
+								if (raw) {
+								    raw.split(',').forEach(item => {
+								        const m = item.trim().match(/^(.+?)(\d+)$/);
+								        if (m) {
+								            allowMap[m[1].trim()] = Number(m[2]);
+								        }
+								    });
+								}
+								// API国家池
+								const apiCountryPool = {};
+								const apiFinalNodes = [];
 								// ===== 严格处理协议节点 =====
-								const 修改后的其他节点数组 =
-								  合并其他节点数组.map(link => {
-								
-								    // VMESS节点直接保留
-									    if (link.toLowerCase().startsWith('vmess://')) {
-									        return link;
-									    }
-
+								API节点数组.forEach(link => {
 									try {
-
 										const hashIndex =
 											link.lastIndexOf('#');
-
 										// 没备注直接丢弃
 										if (hashIndex === -1)
-											return null;
-
-										const base =
-											link.slice(0, hashIndex);
-
-										let remark = decodeURIComponent(
-											link.slice(hashIndex + 1)
-										);
-										// ===== 是否来自API =====
-const 来自API =
-    remark.includes('__API__');
-
-										// 清理emoji
-										remark = remark
-											.replace(
-												/[\u{1F1E6}-\u{1F1FF}]{2}/gu,
-												""
-											)
-											.trim();
-
+											return;
+										const base = link.slice(0, hashIndex);
+										let remark =
+										    decodeURIComponent(link.slice(hashIndex + 1))
+										        .replace(
+										            /[\u{1F1E6}-\u{1F1FF}]{2}/gu,
+										            ""
+										        )
+										        .trim();
 										// ===== 国家识别 =====
 										const country =
 											detectCountry(remark);
-										// ===== API节点国家数量限制 =====
-if (来自API) {
-
-    if (!globalThis.__ALLOW_COUNTRIES__) {
-
-        const allowMap = {};
-
-        const raw =
-            (env.ALLOW_COUNTRIES || '').trim();
-
-        if (raw) {
-
-            raw.split(',').forEach(item => {
-
-                const m =
-                    item.trim().match(/^(.+?)(\d+)$/);
-
-                if (m) {
-
-                    allowMap[m[1].trim()] =
-                        Number(m[2]);
-                }
-
-            });
-
-        }
-
-        globalThis.__ALLOW_COUNTRIES__ = allowMap;
-        globalThis.__ALLOW_COUNTS__ = {};
-
-    }
-
-    const allowMap =
-        globalThis.__ALLOW_COUNTRIES__;
-
-    const counts =
-        globalThis.__ALLOW_COUNTS__;
-
-    // 不在允许国家内
-    if (!(country in allowMap))
-        return null;
-
-    counts[country] =
-        (counts[country] || 0) + 1;
-
-    // 超过数量
-    if (counts[country] > allowMap[country])
-        return null;
-}
-
 										// 没识别到国家 → 删除节点
 										if (!country)
-											return null;
+											return;
+										const need = allowMap[country];
 										
-
-
+										if (!need) return;
 										// ===== 最终备注 =====
 										const 自定义备注 =
 											(env.REMARK_TAG || '').trim();
-
-										// ===== 是否来自 EXTRA_NODES =====
-										const 来自EXTRA =
-											remark.includes('__EXTTA__');
-
-										let newRemark = '';
-
-										// ===== EXTRA_NODES只保留国家 =====
-										if (来自EXTRA) {
-
-											newRemark =
-												`${country}`;
-
-										}
-
-										// ===== KV-sub/API =====
-										// 保留其它备注
-										else {
-
-											// 找到命中的国家关键词
-											let matchedKeyword = null;
-
-											for (const k of countryMap[country]) {
-
-												if (
-													remark.toLowerCase()
-													.includes(k.toLowerCase())
-												) {
-
-													matchedKeyword = k;
-													break;
-												}
-											}
-											let cleanedRemark = remark;
-
-cleanedRemark = cleanedRemark
-    .replace('__API__', '')
-    .trim();
-											newRemark = cleanedRemark;
-
-											
-										}
-
-										// ===== 添加自定义备注 =====
+										let newRemark = country;
 										if (自定义备注) {
-
 											newRemark += ` ${自定义备注}`;
 										}
 
-										return base + '#'
-											+ encodeURIComponent(newRemark);
-
+										const finalNode =
+										    base + '#' + encodeURIComponent(newRemark);
+										
+										if (!apiCountryPool[country]) {
+										    apiCountryPool[country] = [];
+										}
+										
+										apiCountryPool[country].push(finalNode);
+										
+										return;
 									} catch (e) {
 
-										return null;
+										return;
 
 									}
 
-								}).filter(Boolean);
-
+								});
+								// ===== API国家池随机抽取 =====
+								
+								function shuffle(arr) {
+								
+									for (let i = arr.length - 1; i > 0; i--) {
+								
+										const j = Math.floor(Math.random() * (i + 1));
+								
+										[arr[i], arr[j]] = [arr[j], arr[i]];
+								
+									}
+								
+									return arr;
+								}
+								
+								for (const country in apiCountryPool) {
+								
+									shuffle(apiCountryPool[country]);
+								
+									apiFinalNodes.push(
+										...apiCountryPool[country].slice(
+											0,
+											allowMap[country] || 0
+										)
+									);
+								
+								}
 								// ===== 最终协议节点 =====
 								其他节点LINK =
-									修改后的其他节点数组.length > 0
-										? 修改后的其他节点数组.join('\n') + '\n'
-										: '';
+										[
+											...apiFinalNodes,
+											...原始其他节点数组
+										].join('\n') + '\n';
 								//替换成以上一整段，对汇聚订阅节点进行备注整理。
 
 								const 优选API的IP = 请求优选API内容[0];
