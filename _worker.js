@@ -6470,22 +6470,11 @@ async function nginx() {
 		</ul>
 		</div>
 
-		<!-- ✅ 新增：最近更新 -->
-		<div class="block">
-		<div class="title">🆕 最近更新项</div>
-		<ul class="update-list">
-			<li>✔️ 更新项1：新增三网优化节点。</li>
-			<li>✔️ 更新项2：新增智能优选节点(每次更新时会自动适配您当前网络)。</li>
-			<li>✔️ 更新项3：新增支持ECH（Encrypted Client Hello，加密客户端问候）： TLS 的一项新特性，用来 将原本会明文暴露的域名信息一起加密。</li>
-		</ul>
-		</div>
-
-
 		<!-- 联系方式 -->
 		<div class="block">
 		<div class="title">📞 联系方式</div>
 		<div class="contact">
-			<p>技术支持：Rabbie <span class="glow">提供国外平台代充服务</span></p>
+			<p>技术支持：Rabbie <span class="glow">提供海外平台代充服务</span></p>
 			<p>微信：Realive8</p>
 			<p>QQ：595909839</p>
 		</div>
